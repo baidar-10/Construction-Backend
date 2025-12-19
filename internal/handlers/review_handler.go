@@ -4,9 +4,8 @@ import (
 	"construction-backend/internal/models"
 	"construction-backend/internal/service"
 	"net/http"
-	"strconv"
-
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 )
 
 type ReviewHandler struct {
@@ -32,8 +31,13 @@ func (h *ReviewHandler) CreateReview(c *gin.Context) {
 }
 
 func (h *ReviewHandler) GetWorkerReviews(c *gin.Context) {
-	workerID, _ := strconv.Atoi(c.Param("workerId"))
-	reviews, err := h.Service.GetWorkerReviews(uint(workerID))
+	workerIDStr := c.Param("workerId")
+	workerID, err := uuid.Parse(workerIDStr)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid worker id"})
+		return
+	}
+	reviews, err := h.Service.GetWorkerReviews(workerID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch reviews"})
 		return

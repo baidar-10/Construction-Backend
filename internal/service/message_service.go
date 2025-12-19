@@ -4,10 +4,11 @@ import (
 	"construction-backend/internal/models"
 	"construction-backend/internal/repository"
 	"time"
+	"github.com/google/uuid"
 )
 
 type MessageService struct {
-	Repo *repository.MessageRepository // You need to ensure this struct exists in your repository package
+	Repo *repository.MessageRepository
 }
 
 // Simple Mock if repository isn't fully defined yet
@@ -21,10 +22,14 @@ func (s *MessageService) SendMessage(msg *models.Message) error {
 	return s.Repo.Create(msg)
 }
 
-func (s *MessageService) GetConversation(user1, user2 uint) ([]models.Message, error) {
-	return s.Repo.GetConversation(user1, user2)
+func (s *MessageService) GetConversation(user1, user2 uuid.UUID) ([]models.Message, error) {
+	return s.Repo.FindBetweenUsers(user1, user2)
 }
 
-func (s *MessageService) MarkAsRead(msgID uint) error {
-	return s.Repo.MarkRead(msgID)
+func (s *MessageService) MarkAsRead(msgID uuid.UUID) error {
+	return s.Repo.MarkAsRead(msgID)
+}
+
+func (s *MessageService) GetConversations(userID uuid.UUID) ([]map[string]interface{}, error) {
+	return s.Repo.GetConversations(userID)
 }

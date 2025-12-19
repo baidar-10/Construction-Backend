@@ -3,26 +3,29 @@ package service
 import (
 	"construction-backend/internal/models"
 	"construction-backend/internal/repository"
+	"github.com/google/uuid"
 )
 
 type CustomerService struct {
-	Repo *repository.UserRepository
+	Repo *repository.CustomerRepository
 }
 
-func NewCustomerService(repo *repository.UserRepository) *CustomerService {
+func NewCustomerService(repo *repository.CustomerRepository) *CustomerService {
 	return &CustomerService{Repo: repo}
 }
 
-func (s *CustomerService) GetProfile(userID uint) (*models.User, error) {
-	return s.Repo.GetByID(userID)
+func (s *CustomerService) GetProfile(userID uuid.UUID) (*models.Customer, error) {
+	return s.Repo.FindByUserID(userID)
 }
 
-func (s *CustomerService) ToggleFavorite(userID, workerID uint) error {
-	// In a real app, this would call a specific Favorites repository
-	// For now, we'll assume the repository handles the many-to-many relationship
-	return s.Repo.AddFavorite(userID, workerID)
+func (s *CustomerService) ToggleFavorite(customerID, workerID uuid.UUID) error {
+	return s.Repo.AddFavorite(customerID, workerID)
 }
 
-func (s *CustomerService) GetFavorites(userID uint) ([]models.WorkerProfile, error) {
-	return s.Repo.GetFavorites(userID)
+func (s *CustomerService) RemoveFavorite(customerID, workerID uuid.UUID) error {
+	return s.Repo.RemoveFavorite(customerID, workerID)
+}
+
+func (s *CustomerService) GetFavorites(customerID uuid.UUID) ([]models.Worker, error) {
+	return s.Repo.GetFavorites(customerID)
 }

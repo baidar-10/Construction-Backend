@@ -5,6 +5,7 @@ import (
 	"construction-backend/internal/repository"
 	"errors"
 	"time"
+	"github.com/google/uuid"
 )
 
 type BookingService struct {
@@ -16,20 +17,20 @@ func NewBookingService(repo *repository.BookingRepository) *BookingService {
 }
 
 func (s *BookingService) CreateBooking(booking *models.Booking) error {
-	if booking.StartDate.Before(time.Now()) {
+	if booking.ScheduledDate.Before(time.Now()) {
 		return errors.New("cannot book dates in the past")
 	}
 	booking.Status = "pending"
 	return s.Repo.Create(booking)
 }
 
-func (s *BookingService) GetUserBookings(userID uint, isWorker bool) ([]models.Booking, error) {
+func (s *BookingService) GetUserBookings(userID uuid.UUID, isWorker bool) ([]models.Booking, error) {
 	if isWorker {
-		return s.Repo.GetByWorkerID(userID)
+		return s.Repo.FindByWorkerID(userID)
 	}
-	return s.Repo.GetByCustomerID(userID)
+	return s.Repo.FindByCustomerID(userID)
 }
 
-func (s *BookingService) UpdateStatus(bookingID uint, status string) error {
+func (s *BookingService) UpdateStatus(bookingID uuid.UUID, status string) error {
 	return s.Repo.UpdateStatus(bookingID, status)
 }

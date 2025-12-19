@@ -3,6 +3,7 @@ package service
 import (
 	"construction-backend/internal/models"
 	"construction-backend/internal/repository"
+	"github.com/google/uuid"
 )
 
 type ReviewService struct {
@@ -18,6 +19,6 @@ func (s *ReviewService) CreateReview(review *models.Review) error {
 	return s.Repo.Create(review)
 }
 
-func (s *ReviewService) GetWorkerReviews(workerID uint) ([]models.Review, error) {
-	return s.Repo.GetByWorkerID(workerID)
+func (s *ReviewService) GetWorkerReviews(workerID uuid.UUID) ([]models.Review, error) {
+	return s.Repo.FindByWorkerID(workerID)
 }

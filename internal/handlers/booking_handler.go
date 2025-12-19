@@ -2,11 +2,12 @@ package handlers
 
 import (
 	"construction-backend/internal/models"
+	"construction-backend/internal/middleware"
 	"construction-backend/internal/service"
 	"net/http"
-	"strconv"
 
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 )
 
 type BookingHandler struct {
@@ -23,10 +24,11 @@ func (h *BookingHandler) CreateBooking(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	
-	// In a real app, set CustomerID from the authenticated user context
-	// userID, _ := c.Get("userID")
-	// booking.CustomerID = userID.(uint)
+
+	userID, ok := middleware.GetUserIDFromContext(c)
+	if ok {
+		booking.CustomerID = userID
+	}
 
 	if err := h.Service.CreateBooking(&booking); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -36,11 +38,46 @@ func (h *BookingHandler) CreateBooking(c *gin.Context) {
 }
 
 func (h *BookingHandler) GetMyBookings(c *gin.Context) {
-	// Mocking user ID extraction
-	userID, _ := strconv.Atoi(c.Query("userId"))
+	userIDStr := c.Query("userId")
+	userID, err := uuid.Parse(userIDStr)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid user id"})
+		return
+	}
 	isWorker := c.Query("type") == "worker"
 
-	bookings, err := h.Service.GetUserBookings(uint(userID), isWorker)
+	bookings, err := h.Service.GetUserBookings(userID, isWorker)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch bookings"})
+		return
+	}
+	c.JSON(http.StatusOK, bookings)
+}
+
+func (h *BookingHandler) GetUserBookings(c *gin.Context) {
+	// path: /user/:userId
+	userIDStr := c.Param("userId")
+	userID, err := uuid.Parse(userIDStr)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid user id"})
+		return
+	}
+	bookings, err := h.Service.GetUserBookings(userID, false)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch bookings"})
+		return
+	}
+	c.JSON(http.StatusOK, bookings)
+}
+
+func (h *BookingHandler) GetWorkerBookings(c *gin.Context) {
+	workerIDStr := c.Param("workerId")
+	workerID, err := uuid.Parse(workerIDStr)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid worker id"})
+		return
+	}
+	bookings, err := h.Service.GetUserBookings(workerID, true)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch bookings"})
 		return
@@ -49,7 +86,12 @@ func (h *BookingHandler) GetMyBookings(c *gin.Context) {
 }
 
 func (h *BookingHandler) UpdateBookingStatus(c *gin.Context) {
-	id, _ := strconv.Atoi(c.Param("id"))
+	idStr := c.Param("id")
+	id, err := uuid.Parse(idStr)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid id"})
+		return
+	}
 	var input struct {
 		Status string `json:"status"`
 	}
@@ -58,9 +100,24 @@ func (h *BookingHandler) UpdateBookingStatus(c *gin.Context) {
 		return
 	}
 
-	if err := h.Service.UpdateStatus(uint(id), input.Status); err != nil {
+	if err := h.Service.UpdateStatus(id, input.Status); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Update failed"})
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"message": "Status updated"})
+}
+
+func (h *BookingHandler) CancelBooking(c *gin.Context) {
+	idStr := c.Param("id")
+	id, err := uuid.Parse(idStr)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid id"})
+		return
+	}
+
+	if err := h.Service.UpdateStatus(id, "cancelled"); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Cancel failed"})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"message": "Booking cancelled"})
 }
