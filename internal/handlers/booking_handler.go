@@ -2,7 +2,6 @@ package handlers
 
 import (
 	"construction-backend/internal/models"
-	"construction-backend/internal/middleware"
 	"construction-backend/internal/service"
 	"net/http"
 
@@ -11,11 +10,11 @@ import (
 )
 
 type BookingHandler struct {
-	Service *service.BookingService
+	bookingService *service.BookingService
 }
 
-func NewBookingHandler(s *service.BookingService) *BookingHandler {
-	return &BookingHandler{Service: s}
+func NewBookingHandler(bookingService *service.BookingService) *BookingHandler {
+	return &BookingHandler{bookingService: bookingService}
 }
 
 func (h *BookingHandler) CreateBooking(c *gin.Context) {
@@ -25,99 +24,83 @@ func (h *BookingHandler) CreateBooking(c *gin.Context) {
 		return
 	}
 
-	userID, ok := middleware.GetUserIDFromContext(c)
-	if ok {
-		booking.CustomerID = userID
-	}
-
-	if err := h.Service.CreateBooking(&booking); err != nil {
+	if err := h.bookingService.CreateBooking(&booking); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	c.JSON(http.StatusCreated, booking)
-}
 
-func (h *BookingHandler) GetMyBookings(c *gin.Context) {
-	userIDStr := c.Query("userId")
-	userID, err := uuid.Parse(userIDStr)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid user id"})
-		return
-	}
-	isWorker := c.Query("type") == "worker"
-
-	bookings, err := h.Service.GetUserBookings(userID, isWorker)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch bookings"})
-		return
-	}
-	c.JSON(http.StatusOK, bookings)
+	c.JSON(http.StatusCreated, gin.H{"booking": booking, "message": "Booking created successfully"})
 }
 
 func (h *BookingHandler) GetUserBookings(c *gin.Context) {
-	// path: /user/:userId
-	userIDStr := c.Param("userId")
-	userID, err := uuid.Parse(userIDStr)
+	userID, err := uuid.Parse(c.Param("userId"))
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid user id"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid user ID"})
 		return
 	}
-	bookings, err := h.Service.GetUserBookings(userID, false)
+
+	// Get user type from context to determine which bookings to fetch
+	userType, _ := c.Get("userType")
+	bookings, err := h.bookingService.GetUserBookings(userID, userType.(string))
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch bookings"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-	c.JSON(http.StatusOK, bookings)
+
+	c.JSON(http.StatusOK, gin.H{"bookings": bookings, "count": len(bookings)})
 }
 
 func (h *BookingHandler) GetWorkerBookings(c *gin.Context) {
-	workerIDStr := c.Param("workerId")
-	workerID, err := uuid.Parse(workerIDStr)
+	workerID, err := uuid.Parse(c.Param("workerId"))
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid worker id"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid worker ID"})
 		return
 	}
-	bookings, err := h.Service.GetUserBookings(workerID, true)
+
+	bookings, err := h.bookingService.GetWorkerBookings(workerID)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch bookings"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-	c.JSON(http.StatusOK, bookings)
+
+	c.JSON(http.StatusOK, gin.H{"bookings": bookings, "count": len(bookings)})
 }
 
 func (h *BookingHandler) UpdateBookingStatus(c *gin.Context) {
-	idStr := c.Param("id")
-	id, err := uuid.Parse(idStr)
+	id, err := uuid.Parse(c.Param("id"))
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid id"})
-		return
-	}
-	var input struct {
-		Status string `json:"status"`
-	}
-	if err := c.ShouldBindJSON(&input); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid status"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid booking ID"})
 		return
 	}
 
-	if err := h.Service.UpdateStatus(id, input.Status); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Update failed"})
+	var req struct {
+		Status string `json:"status" binding:"required"`
+	}
+
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"message": "Status updated"})
+
+	if err := h.bookingService.UpdateBookingStatus(id, req.Status); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Booking status updated successfully"})
 }
 
 func (h *BookingHandler) CancelBooking(c *gin.Context) {
-	idStr := c.Param("id")
-	id, err := uuid.Parse(idStr)
+	id, err := uuid.Parse(c.Param("id"))
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid id"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid booking ID"})
 		return
 	}
 
-	if err := h.Service.UpdateStatus(id, "cancelled"); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Cancel failed"})
+	if err := h.bookingService.CancelBooking(id); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"message": "Booking cancelled"})
+
+	c.JSON(http.StatusOK, gin.H{"message": "Booking cancelled successfully"})
 }

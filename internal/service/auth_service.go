@@ -4,11 +4,14 @@ import (
 	"construction-backend/internal/models"
 	"construction-backend/internal/repository"
 	"errors"
+	"strings" 
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
 	"golang.org/x/crypto/bcrypt"
+	"gorm.io/gorm"
+	"log"
 )
 
 type AuthService struct {
@@ -25,9 +28,14 @@ func NewAuthService(userRepo *repository.UserRepository, jwtSecret string) *Auth
 
 func (s *AuthService) Register(req *models.RegisterRequest) (*models.User, error) {
 	// Check if user exists
-	existingUser, _ := s.userRepo.FindByEmail(req.Email)
-	if existingUser != nil {
+	existingUser, err := s.userRepo.FindByEmail(req.Email)
+	log.Printf("Register: FindByEmail err=%v existingUser.ID=%v", err, existingUser.ID)
+	if err == nil && existingUser != nil {
 		return nil, errors.New("user with this email already exists")
+	}
+	// If the error is something else than record not found, return it
+	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
+		return nil, err
 	}
 
 	// Hash password
@@ -36,12 +44,33 @@ func (s *AuthService) Register(req *models.RegisterRequest) (*models.User, error
 		return nil, err
 	}
 
+	// Handle full name vs first/last name
+	firstName := req.FirstName
+	lastName := req.LastName
+	
+	if req.FullName != "" && (firstName == "" || lastName == "") {
+		// Split full name into first and last
+		parts := strings.Fields(req.FullName)
+		if len(parts) >= 2 {
+			firstName = parts[0]
+			lastName = strings.Join(parts[1:], " ")
+		} else if len(parts) == 1 {
+			firstName = parts[0]
+			lastName = ""
+		}
+	}
+
+	// Validate we have at least a first name
+	if firstName == "" {
+		return nil, errors.New("first name or full name is required")
+	}
+
 	// Create user
 	user := &models.User{
 		Email:        req.Email,
 		PasswordHash: string(hashedPassword),
-		FirstName:    req.FirstName,
-		LastName:     req.LastName,
+		FirstName:    firstName,
+		LastName:     lastName,
 		Phone:        req.Phone,
 		UserType:     req.UserType,
 		IsActive:     true,

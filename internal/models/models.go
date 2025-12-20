@@ -132,11 +132,13 @@ type Notification struct {
 type RegisterRequest struct {
 	Email     string `json:"email" binding:"required,email"`
 	Password  string `json:"password" binding:"required,min=8"`
-	FirstName string `json:"firstName" binding:"required"`
-	LastName  string `json:"lastName" binding:"required"`
+	FirstName string `json:"firstName"`
+	LastName  string `json:"lastName"`
+	FullName  string `json:"fullName"` // Support full name from frontend
 	Phone     string `json:"phone"`
 	UserType  string `json:"userType" binding:"required,oneof=customer worker"`
 	Specialty string `json:"specialty,omitempty"`
+	Location  string `json:"location,omitempty"`
 }
 
 type LoginRequest struct {

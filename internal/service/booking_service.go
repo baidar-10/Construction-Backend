@@ -3,34 +3,44 @@ package service
 import (
 	"construction-backend/internal/models"
 	"construction-backend/internal/repository"
-	"errors"
-	"time"
+
 	"github.com/google/uuid"
 )
 
 type BookingService struct {
-	Repo *repository.BookingRepository
+	bookingRepo *repository.BookingRepository
 }
 
-func NewBookingService(repo *repository.BookingRepository) *BookingService {
-	return &BookingService{Repo: repo}
+func NewBookingService(bookingRepo *repository.BookingRepository) *BookingService {
+	return &BookingService{bookingRepo: bookingRepo}
 }
 
 func (s *BookingService) CreateBooking(booking *models.Booking) error {
-	if booking.ScheduledDate.Before(time.Now()) {
-		return errors.New("cannot book dates in the past")
-	}
-	booking.Status = "pending"
-	return s.Repo.Create(booking)
+	return s.bookingRepo.Create(booking)
 }
 
-func (s *BookingService) GetUserBookings(userID uuid.UUID, isWorker bool) ([]models.Booking, error) {
-	if isWorker {
-		return s.Repo.FindByWorkerID(userID)
-	}
-	return s.Repo.FindByCustomerID(userID)
+func (s *BookingService) GetBookingByID(id uuid.UUID) (*models.Booking, error) {
+	return s.bookingRepo.FindByID(id)
 }
 
-func (s *BookingService) UpdateStatus(bookingID uuid.UUID, status string) error {
-	return s.Repo.UpdateStatus(bookingID, status)
+func (s *BookingService) GetUserBookings(userID uuid.UUID, userType string) ([]models.Booking, error) {
+	// Determine if user is customer or worker and get appropriate bookings
+	// For now, we'll assume customer ID
+	return s.bookingRepo.FindByCustomerID(userID)
+}
+
+func (s *BookingService) GetCustomerBookings(customerID uuid.UUID) ([]models.Booking, error) {
+	return s.bookingRepo.FindByCustomerID(customerID)
+}
+
+func (s *BookingService) GetWorkerBookings(workerID uuid.UUID) ([]models.Booking, error) {
+	return s.bookingRepo.FindByWorkerID(workerID)
+}
+
+func (s *BookingService) UpdateBookingStatus(id uuid.UUID, status string) error {
+	return s.bookingRepo.UpdateStatus(id, status)
+}
+
+func (s *BookingService) CancelBooking(id uuid.UUID) error {
+	return s.bookingRepo.Delete(id)
 }
