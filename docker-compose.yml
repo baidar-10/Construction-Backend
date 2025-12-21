@@ -45,6 +45,19 @@ services:
       - ./uploads:/app/uploads
     restart: unless-stopped
 
+  frontend:
+    build:
+      context: ../Construction-Frontend
+      dockerfile: Dockerfile
+    container_name: construction_frontend
+    depends_on:
+      - backend
+    networks:
+      - construction_network
+    ports:
+      - "80:80"
+    restart: unless-stopped
+
 volumes:
   postgres_data:
 
