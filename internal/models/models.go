@@ -55,6 +55,11 @@ type Portfolio struct {
 	CreatedAt   time.Time `json:"createdAt"`
 }
 
+// TableName overrides the default table name for GORM
+func (Portfolio) TableName() string {
+	return "worker_portfolio"
+}
+
 type Customer struct {
 	ID         uuid.UUID `json:"id" gorm:"type:uuid;primary_key;default:uuid_generate_v4()"`
 	UserID     uuid.UUID `json:"userId" gorm:"type:uuid;unique;not null"`
@@ -130,15 +135,27 @@ type Notification struct {
 
 // Request/Response DTOs
 type RegisterRequest struct {
-	Email     string `json:"email" binding:"required,email"`
-	Password  string `json:"password" binding:"required,min=8"`
-	FirstName string `json:"firstName"`
-	LastName  string `json:"lastName"`
-	FullName  string `json:"fullName"` // Support full name from frontend
-	Phone     string `json:"phone"`
-	UserType  string `json:"userType" binding:"required,oneof=customer worker"`
-	Specialty string `json:"specialty,omitempty"`
-	Location  string `json:"location,omitempty"`
+	Email           string   `json:"email" binding:"required,email"`
+	Password        string   `json:"password" binding:"required,min=8"`
+	FirstName       string   `json:"firstName"`
+	LastName        string   `json:"lastName"`
+	FullName        string   `json:"fullName"`
+	Phone           string   `json:"phone"`
+	UserType        string   `json:"userType" binding:"required,oneof=customer worker"`
+	
+	// Worker-specific fields
+	Specialty       string   `json:"specialty,omitempty"`
+	HourlyRate      float64  `json:"hourlyRate,omitempty"`
+	ExperienceYears int      `json:"experienceYears,omitempty"`
+	Bio             string   `json:"bio,omitempty"`
+	Location        string   `json:"location,omitempty"`
+	Skills          []string `json:"skills,omitempty"`
+	
+	// Customer-specific fields
+	Address         string   `json:"address,omitempty"`
+	City            string   `json:"city,omitempty"`
+	State           string   `json:"state,omitempty"`
+	PostalCode      string   `json:"postalCode,omitempty"`
 }
 
 type LoginRequest struct {

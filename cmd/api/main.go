@@ -34,7 +34,7 @@ func main() {
 	messageRepo := repository.NewMessageRepository(db)
 
 	// Initialize services
-	authService := service.NewAuthService(userRepo, cfg.JWTSecret)
+	authService := service.NewAuthService(userRepo, workerRepo, customerRepo, cfg.JWTSecret, db.DB)
 	workerService := service.NewWorkerService(workerRepo)
 	customerService := service.NewCustomerService(customerRepo)
 	bookingService := service.NewBookingService(bookingRepo)

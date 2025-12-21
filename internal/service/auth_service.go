@@ -4,32 +4,36 @@ import (
 	"construction-backend/internal/models"
 	"construction-backend/internal/repository"
 	"errors"
-	"strings" 
+	"strings"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
 	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
-	"log"
 )
 
 type AuthService struct {
-	userRepo  *repository.UserRepository
-	jwtSecret string
+	userRepo     *repository.UserRepository
+	workerRepo   *repository.WorkerRepository
+	customerRepo *repository.CustomerRepository
+	jwtSecret    string
+	db           *gorm.DB
 }
 
-func NewAuthService(userRepo *repository.UserRepository, jwtSecret string) *AuthService {
+func NewAuthService(userRepo *repository.UserRepository, workerRepo *repository.WorkerRepository, customerRepo *repository.CustomerRepository, jwtSecret string, db *gorm.DB) *AuthService {
 	return &AuthService{
-		userRepo:  userRepo,
-		jwtSecret: jwtSecret,
+		userRepo:     userRepo,
+		workerRepo:   workerRepo,
+		customerRepo: customerRepo,
+		jwtSecret:    jwtSecret,
+		db:           db,
 	}
 }
 
 func (s *AuthService) Register(req *models.RegisterRequest) (*models.User, error) {
 	// Check if user exists
 	existingUser, err := s.userRepo.FindByEmail(req.Email)
-	log.Printf("Register: FindByEmail err=%v existingUser.ID=%v", err, existingUser.ID)
 	if err == nil && existingUser != nil {
 		return nil, errors.New("user with this email already exists")
 	}
@@ -49,7 +53,6 @@ func (s *AuthService) Register(req *models.RegisterRequest) (*models.User, error
 	lastName := req.LastName
 	
 	if req.FullName != "" && (firstName == "" || lastName == "") {
-		// Split full name into first and last
 		parts := strings.Fields(req.FullName)
 		if len(parts) >= 2 {
 			firstName = parts[0]
@@ -60,10 +63,17 @@ func (s *AuthService) Register(req *models.RegisterRequest) (*models.User, error
 		}
 	}
 
-	// Validate we have at least a first name
 	if firstName == "" {
 		return nil, errors.New("first name or full name is required")
 	}
+
+	// Start transaction
+	tx := s.db.Begin()
+	defer func() {
+		if r := recover(); r != nil {
+			tx.Rollback()
+		}
+	}()
 
 	// Create user
 	user := &models.User{
@@ -76,7 +86,61 @@ func (s *AuthService) Register(req *models.RegisterRequest) (*models.User, error
 		IsActive:     true,
 	}
 
-	if err := s.userRepo.Create(user); err != nil {
+	if err := tx.Create(user).Error; err != nil {
+		tx.Rollback()
+		return nil, err
+	}
+
+	// Create profile based on user type
+	if req.UserType == "worker" {
+		worker := &models.Worker{
+			UserID:             user.ID,
+			Specialty:          req.Specialty,
+			HourlyRate:         req.HourlyRate,
+			ExperienceYears:    req.ExperienceYears,
+			Bio:                req.Bio,
+			Location:           req.Location,
+			AvailabilityStatus: "available",
+			Rating:             0.0,
+			TotalReviews:       0,
+			TotalJobs:          0,
+		}
+
+		if err := tx.Create(worker).Error; err != nil {
+			tx.Rollback()
+			return nil, err
+		}
+
+		// Add skills if provided
+		if len(req.Skills) > 0 {
+			for _, skill := range req.Skills {
+				workerSkill := &models.WorkerSkill{
+					WorkerID: worker.ID,
+					Skill:    skill,
+				}
+				if err := tx.Create(workerSkill).Error; err != nil {
+					tx.Rollback()
+					return nil, err
+				}
+			}
+		}
+	} else if req.UserType == "customer" {
+		customer := &models.Customer{
+			UserID:     user.ID,
+			Address:    req.Address,
+			City:       req.City,
+			State:      req.State,
+			PostalCode: req.PostalCode,
+		}
+
+		if err := tx.Create(customer).Error; err != nil {
+			tx.Rollback()
+			return nil, err
+		}
+	}
+
+	// Commit transaction
+	if err := tx.Commit().Error; err != nil {
 		return nil, err
 	}
 
@@ -93,7 +157,6 @@ func (s *AuthService) Login(email, password string) (string, *models.User, error
 		return "", nil, errors.New("invalid credentials")
 	}
 
-	// Generate JWT token
 	token, err := s.generateToken(user)
 	if err != nil {
 		return "", nil, err
@@ -107,7 +170,7 @@ func (s *AuthService) generateToken(user *models.User) (string, error) {
 		"userId":   user.ID.String(),
 		"email":    user.Email,
 		"userType": user.UserType,
-		"exp":      time.Now().Add(time.Hour * 24 * 7).Unix(), // 7 days
+		"exp":      time.Now().Add(time.Hour * 24 * 7).Unix(),
 	}
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
