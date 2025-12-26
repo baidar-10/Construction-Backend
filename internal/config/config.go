@@ -3,18 +3,20 @@ package config
 import (
 	"log"
 	"os"
+	"strings"
 
 	"github.com/joho/godotenv"
 )
 
 type Config struct {
-	DBHost     string
-	DBPort     string
-	DBUser     string
-	DBPassword string
-	DBName     string
-	JWTSecret  string
-	Port       string
+	DBHost        string
+	DBPort        string
+	DBUser        string
+	DBPassword    string
+	DBName        string
+	JWTSecret     string
+	Port          string
+	AllowedOrigins []string
 }
 
 func LoadConfig() *Config {
@@ -22,6 +24,8 @@ func LoadConfig() *Config {
 	if err := godotenv.Load(); err != nil {
 		log.Println("No .env file found, using environment variables")
 	}
+
+	allowed := getEnv("ALLOWED_ORIGINS", "http://localhost:5173,http://localhost:5174,http://localhost:3000")
 
 	return &Config{
 		DBHost:     getEnv("DB_HOST", "localhost"),
@@ -31,6 +35,7 @@ func LoadConfig() *Config {
 		DBName:     getEnv("DB_NAME", "construction_db"),
 		JWTSecret:  getEnv("JWT_SECRET", "your-super-secret-jwt-key"),
 		Port:       getEnv("PORT", "8080"),
+		AllowedOrigins: strings.Split(allowed, ","),
 	}
 }
 
@@ -39,4 +44,4 @@ func getEnv(key, defaultValue string) string {
 		return value
 	}
 	return defaultValue
-}
+} 

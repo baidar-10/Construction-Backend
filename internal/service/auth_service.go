@@ -4,7 +4,6 @@ import (
 	"construction-backend/internal/models"
 	"construction-backend/internal/repository"
 	"errors"
-	"strings"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
@@ -48,23 +47,12 @@ func (s *AuthService) Register(req *models.RegisterRequest) (*models.User, error
 		return nil, err
 	}
 
-	// Handle full name vs first/last name
-	firstName := req.FirstName
-	lastName := req.LastName
-	
-	if req.FullName != "" && (firstName == "" || lastName == "") {
-		parts := strings.Fields(req.FullName)
-		if len(parts) >= 2 {
-			firstName = parts[0]
-			lastName = strings.Join(parts[1:], " ")
-		} else if len(parts) == 1 {
-			firstName = parts[0]
-			lastName = ""
-		}
+	// Validate required fields
+	if req.FirstName == "" {
+		return nil, errors.New("first name is required")
 	}
-
-	if firstName == "" {
-		return nil, errors.New("first name or full name is required")
+	if req.LastName == "" {
+		return nil, errors.New("last name is required")
 	}
 
 	// Start transaction
@@ -79,8 +67,8 @@ func (s *AuthService) Register(req *models.RegisterRequest) (*models.User, error
 	user := &models.User{
 		Email:        req.Email,
 		PasswordHash: string(hashedPassword),
-		FirstName:    firstName,
-		LastName:     lastName,
+		FirstName:    req.FirstName,
+		LastName:     req.LastName,
 		Phone:        req.Phone,
 		UserType:     req.UserType,
 		IsActive:     true,

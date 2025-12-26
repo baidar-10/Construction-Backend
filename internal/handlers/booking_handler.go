@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"construction-backend/internal/middleware"
 	"construction-backend/internal/models"
 	"construction-backend/internal/service"
 	"net/http"
@@ -24,7 +25,19 @@ func (h *BookingHandler) CreateBooking(c *gin.Context) {
 		return
 	}
 
-	if err := h.bookingService.CreateBooking(&booking); err != nil {
+	// Ensure authenticated user is a customer and set as the booking's customer
+	userID, ok := middleware.GetUserIDFromContext(c)
+	if !ok {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized", "message": "Authentication required"})
+		return
+	}
+	userType, _ := middleware.GetUserTypeFromContext(c)
+	if userType != "customer" {
+		c.JSON(http.StatusForbidden, gin.H{"error": "Forbidden", "message": "Only customers can create bookings"})
+		return
+	}
+
+	if err := h.bookingService.CreateBookingForUser(userID, &booking); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}

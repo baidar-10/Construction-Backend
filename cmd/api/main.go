@@ -35,9 +35,9 @@ func main() {
 
 	// Initialize services
 	authService := service.NewAuthService(userRepo, workerRepo, customerRepo, cfg.JWTSecret, db.DB)
-	workerService := service.NewWorkerService(workerRepo)
+	workerService := service.NewWorkerService(workerRepo, userRepo)
 	customerService := service.NewCustomerService(customerRepo)
-	bookingService := service.NewBookingService(bookingRepo)
+	bookingService := service.NewBookingService(bookingRepo, customerRepo)
 	reviewService := service.NewReviewService(reviewRepo)
 	messageService := service.NewMessageService(messageRepo)
 
@@ -53,8 +53,13 @@ func main() {
 	router := gin.Default()
 
 	// CORS middleware
+	allowedOrigins := cfg.AllowedOrigins
+	if len(allowedOrigins) == 0 {
+		allowedOrigins = []string{"http://localhost:5173", "http://localhost:5174", "http://localhost:3000"}
+	}
+
 	router.Use(cors.New(cors.Config{
-		AllowOrigins:     []string{"http://localhost:5173", "http://localhost:5174", "http://localhost:3000"},
+		AllowOrigins:     allowedOrigins,
 		AllowMethods:     []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"},
 		AllowHeaders:     []string{"Origin", "Content-Type", "Accept", "Authorization"},
 		ExposeHeaders:    []string{"Content-Length"},
@@ -67,6 +72,9 @@ func main() {
 		c.JSON(200, gin.H{"status": "ok", "message": "Construction API is running"})
 	})
 
+	// Serve uploaded files
+	router.Static("/uploads", "./uploads")
+
 	// API routes
 	api := router.Group("/api")
 	{
@@ -77,19 +85,21 @@ func main() {
 			auth.POST("/login", authHandler.Login)
 			auth.GET("/me", middleware.AuthMiddleware(cfg.JWTSecret), authHandler.GetCurrentUser)
 			auth.PUT("/profile/:userId", middleware.AuthMiddleware(cfg.JWTSecret), authHandler.UpdateProfile)
-		}
+				auth.POST("/profile/:userId/avatar", middleware.AuthMiddleware(cfg.JWTSecret), authHandler.UploadAvatar)
+			}
 
-		// Worker routes
-		workers := api.Group("/workers")
-		{
-			workers.GET("", workerHandler.GetAllWorkers)
-			workers.GET("/:id", workerHandler.GetWorkerByID)
-			workers.GET("/search", workerHandler.SearchWorkers)
+			// Worker routes
+			workers := api.Group("/workers")
+			{
+				workers.GET("", workerHandler.GetAllWorkers)
+				workers.GET("/user/:userId", middleware.AuthMiddleware(cfg.JWTSecret), workerHandler.GetWorkerByUserID)
 			workers.GET("/filter", workerHandler.FilterWorkers)
-			workers.PUT("/:id", middleware.AuthMiddleware(cfg.JWTSecret), workerHandler.UpdateWorker)
-			workers.POST("/:id/portfolio", middleware.AuthMiddleware(cfg.JWTSecret), workerHandler.AddPortfolio)
-			workers.GET("/:id/reviews", reviewHandler.GetWorkerReviews)
-			workers.POST("/:id/reviews", middleware.AuthMiddleware(cfg.JWTSecret), reviewHandler.CreateReview)
+		// Get worker by ID
+		workers.GET("/:id", workerHandler.GetWorkerByID)
+		workers.PUT("/:id", middleware.AuthMiddleware(cfg.JWTSecret), workerHandler.UpdateWorker)
+		workers.POST("/:id/portfolio", middleware.AuthMiddleware(cfg.JWTSecret), workerHandler.AddPortfolio)
+		workers.GET("/:id/reviews", reviewHandler.GetWorkerReviews)
+		workers.POST("/:id/reviews", middleware.AuthMiddleware(cfg.JWTSecret), reviewHandler.CreateReview)
 		}
 
 		// Customer routes

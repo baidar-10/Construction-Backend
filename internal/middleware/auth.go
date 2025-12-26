@@ -32,21 +32,46 @@ func AuthMiddleware(jwtSecret string) gin.HandlerFunc {
 			return
 		}
 
-		claims := &Claims{}
-		token, err := jwt.ParseWithClaims(tokenString, claims, func(token *jwt.Token) (interface{}, error) {
-			return []byte(jwtSecret), nil
-		})
+// Parse claims into a map so we can robustly extract values
+	parsedToken, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
+		return []byte(jwtSecret), nil
+	})
 
-		if err != nil || !token.Valid {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid or expired token"})
-			c.Abort()
-			return
-		}
+	if err != nil || !parsedToken.Valid {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid or expired token"})
+		c.Abort()
+		return
+	}
 
-		// Set user information in context
-		c.Set("userId", claims.UserID)
-		c.Set("email", claims.Email)
-		c.Set("userType", claims.UserType)
+	mapClaims, ok := parsedToken.Claims.(jwt.MapClaims)
+	if !ok {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid token claims"})
+		c.Abort()
+		return
+	}
+
+	// Extract userId, email, userType
+	userIdStr, _ := mapClaims["userId"].(string)
+	email, _ := mapClaims["email"].(string)
+	userType, _ := mapClaims["userType"].(string)
+
+	if userIdStr == "" {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid token: missing userId"})
+		c.Abort()
+		return
+	}
+
+	userID, err := uuid.Parse(userIdStr)
+	if err != nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid token: invalid userId"})
+		c.Abort()
+		return
+	}
+
+	// Set user information in context
+	c.Set("userId", userID)
+	c.Set("email", email)
+	c.Set("userType", userType)
 
 		c.Next()
 	}
