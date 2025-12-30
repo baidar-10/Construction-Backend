@@ -85,8 +85,10 @@ func main() {
 			auth.POST("/login", authHandler.Login)
 			auth.GET("/me", middleware.AuthMiddleware(cfg.JWTSecret), authHandler.GetCurrentUser)
 			auth.PUT("/profile/:userId", middleware.AuthMiddleware(cfg.JWTSecret), authHandler.UpdateProfile)
-				auth.POST("/profile/:userId/avatar", middleware.AuthMiddleware(cfg.JWTSecret), authHandler.UploadAvatar)
-			}
+			auth.POST("/profile/:userId/avatar", middleware.AuthMiddleware(cfg.JWTSecret), authHandler.UploadAvatar)
+			auth.DELETE("/profile/:userId/avatar", middleware.AuthMiddleware(cfg.JWTSecret), authHandler.DeleteAvatar)
+			auth.PUT("/profile/:userId/password", middleware.AuthMiddleware(cfg.JWTSecret), authHandler.ChangePassword)
+		}
 
 			// Worker routes
 			workers := api.Group("/workers")

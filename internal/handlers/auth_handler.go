@@ -144,4 +144,83 @@ func (h *AuthHandler) UploadAvatar(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"avatarUrl": avatarURL, "message": "Avatar uploaded"})
+}
+
+// DeleteAvatar removes the avatar image file and clears the avatarUrl from user profile
+func (h *AuthHandler) DeleteAvatar(c *gin.Context) {
+	userID, err := uuid.Parse(c.Param("userId"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid user ID", "message": "Invalid user ID"})
+		return
+	}
+
+	// Ensure requester is authenticated and the same user
+	authUserID, ok := middleware.GetUserIDFromContext(c)
+	if !ok {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized", "message": "Authentication required"})
+		return
+	}
+	if authUserID != userID {
+		c.JSON(http.StatusForbidden, gin.H{"error": "Forbidden", "message": "You can only delete your own avatar"})
+		return
+	}
+
+	// Get current user to find avatar file
+	user, err := h.authService.GetCurrentUser(userID)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "User not found", "message": "User not found"})
+		return
+	}
+
+	// Delete the file if it exists
+	if user.AvatarURL != "" {
+		filename := filepath.Base(user.AvatarURL)
+		filePath := filepath.Join("./uploads", filename)
+		if err := os.Remove(filePath); err != nil && !os.IsNotExist(err) {
+			// Log error but continue - file might already be deleted
+			fmt.Printf("Warning: Failed to delete avatar file: %v\n", err)
+		}
+	}
+
+	// Clear avatar URL from profile
+	_, err = h.authService.UpdateProfile(userID, &models.UpdateProfileRequest{AvatarURL: ""})
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error(), "message": "Failed to update profile"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Avatar deleted successfully"})
+}
+
+// ChangePassword allows authenticated users to change their password
+func (h *AuthHandler) ChangePassword(c *gin.Context) {
+	userID, err := uuid.Parse(c.Param("userId"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid user ID", "message": "Invalid user ID"})
+		return
+	}
+
+	// Ensure requester is authenticated and the same user
+	authUserID, ok := middleware.GetUserIDFromContext(c)
+	if !ok {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized", "message": "Authentication required"})
+		return
+	}
+	if authUserID != userID {
+		c.JSON(http.StatusForbidden, gin.H{"error": "Forbidden", "message": "You can only change your own password"})
+		return
+	}
+
+	var req models.ChangePasswordRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error(), "message": err.Error()})
+		return
+	}
+
+	if err := h.authService.ChangePassword(userID, &req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error(), "message": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Password changed successfully"})
 } 

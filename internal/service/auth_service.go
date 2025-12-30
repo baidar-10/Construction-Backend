@@ -194,3 +194,29 @@ func (s *AuthService) UpdateProfile(userID uuid.UUID, req *models.UpdateProfileR
 
 	return user, nil
 }
+
+func (s *AuthService) ChangePassword(userID uuid.UUID, req *models.ChangePasswordRequest) error {
+	user, err := s.userRepo.FindByID(userID)
+	if err != nil {
+		return err
+	}
+
+	// Verify current password
+	if err := bcrypt.CompareHashAndPassword([]byte(user.PasswordHash), []byte(req.CurrentPassword)); err != nil {
+		return errors.New("current password is incorrect")
+	}
+
+	// Hash new password
+	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(req.NewPassword), bcrypt.DefaultCost)
+	if err != nil {
+		return err
+	}
+
+	// Update password
+	user.PasswordHash = string(hashedPassword)
+	if err := s.userRepo.Update(user); err != nil {
+		return err
+	}
+
+	return nil
+}

@@ -27,11 +27,11 @@ func (s *BookingService) CreateBookingForUser(userID uuid.UUID, booking *models.
 	// Find customer profile by user id
 	customer, err := s.customerRepo.FindByUserID(userID)
 	if err != nil {
-		return err
+		return errors.New("customer profile not found for this user. Please ensure you have a customer profile")
 	}
 
 	if customer == nil {
-		return errors.New("customer profile not found")
+		return errors.New("customer profile not found. Please complete your customer registration")
 	}
 
 	booking.CustomerID = customer.ID

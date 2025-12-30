@@ -173,3 +173,8 @@ type UpdateProfileRequest struct {
 	Phone     string `json:"phone"`
 	AvatarURL string `json:"avatarUrl"`
 }
+
+type ChangePasswordRequest struct {
+	CurrentPassword string `json:"currentPassword" binding:"required"`
+	NewPassword     string `json:"newPassword" binding:"required,min=6"`
+}

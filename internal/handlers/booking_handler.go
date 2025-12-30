@@ -21,7 +21,7 @@ func NewBookingHandler(bookingService *service.BookingService) *BookingHandler {
 func (h *BookingHandler) CreateBooking(c *gin.Context) {
 	var booking models.Booking
 	if err := c.ShouldBindJSON(&booking); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request data", "message": err.Error()})
 		return
 	}
 
@@ -38,7 +38,7 @@ func (h *BookingHandler) CreateBooking(c *gin.Context) {
 	}
 
 	if err := h.bookingService.CreateBookingForUser(userID, &booking); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Failed to create booking", "message": err.Error()})
 		return
 	}
 
