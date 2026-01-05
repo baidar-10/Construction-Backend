@@ -102,7 +102,49 @@ func (h *BookingHandler) UpdateBookingStatus(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{"message": "Booking status updated successfully"})
 }
+func (h *BookingHandler) AcceptBooking(c *gin.Context) {
+	id, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid booking ID"})
+		return
+	}
 
+	// Ensure authenticated user is a worker
+	userType, _ := middleware.GetUserTypeFromContext(c)
+	if userType != "worker" {
+		c.JSON(http.StatusForbidden, gin.H{"error": "Only workers can accept bookings"})
+		return
+	}
+
+	if err := h.bookingService.AcceptBooking(id); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Booking accepted successfully"})
+}
+
+func (h *BookingHandler) DeclineBooking(c *gin.Context) {
+	id, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid booking ID"})
+		return
+	}
+
+	// Ensure authenticated user is a worker
+	userType, _ := middleware.GetUserTypeFromContext(c)
+	if userType != "worker" {
+		c.JSON(http.StatusForbidden, gin.H{"error": "Only workers can decline bookings"})
+		return
+	}
+
+	if err := h.bookingService.DeclineBooking(id); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Booking declined successfully"})
+}
 func (h *BookingHandler) CancelBooking(c *gin.Context) {
 	id, err := uuid.Parse(c.Param("id"))
 	if err != nil {

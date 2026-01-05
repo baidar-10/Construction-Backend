@@ -71,3 +71,29 @@ func (s *BookingService) UpdateBookingStatus(id uuid.UUID, status string) error 
 func (s *BookingService) CancelBooking(id uuid.UUID) error {
 	return s.bookingRepo.Delete(id)
 }
+
+func (s *BookingService) AcceptBooking(id uuid.UUID) error {
+	booking, err := s.bookingRepo.FindByID(id)
+	if err != nil {
+		return err
+	}
+
+	if booking.Status != "pending" {
+		return errors.New("only pending bookings can be accepted")
+	}
+
+	return s.bookingRepo.UpdateStatus(id, "accepted")
+}
+
+func (s *BookingService) DeclineBooking(id uuid.UUID) error {
+	booking, err := s.bookingRepo.FindByID(id)
+	if err != nil {
+		return err
+	}
+
+	if booking.Status != "pending" {
+		return errors.New("only pending bookings can be declined")
+	}
+
+	return s.bookingRepo.UpdateStatus(id, "declined")
+}

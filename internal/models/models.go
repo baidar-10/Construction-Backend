@@ -112,14 +112,16 @@ type FavoriteWorker struct {
 }
 
 type Message struct {
-	ID         uuid.UUID `json:"id" gorm:"type:uuid;primary_key;default:uuid_generate_v4()"`
-	SenderID   uuid.UUID `json:"senderId" gorm:"type:uuid;not null"`
-	Sender     User      `json:"sender" gorm:"foreignKey:SenderID"`
-	ReceiverID uuid.UUID `json:"receiverId" gorm:"type:uuid;not null"`
-	Receiver   User      `json:"receiver" gorm:"foreignKey:ReceiverID"`
-	Content    string    `json:"content" gorm:"not null"`
-	IsRead     bool      `json:"isRead" gorm:"default:false"`
-	CreatedAt  time.Time `json:"createdAt"`
+	ID         uuid.UUID  `json:"id" gorm:"type:uuid;primary_key;default:uuid_generate_v4()"`
+	BookingID  *uuid.UUID `json:"bookingId,omitempty" gorm:"type:uuid"`
+	Booking    *Booking   `json:"booking,omitempty" gorm:"foreignKey:BookingID"`
+	SenderID   uuid.UUID  `json:"senderId" gorm:"type:uuid;not null"`
+	Sender     User       `json:"sender" gorm:"foreignKey:SenderID"`
+	ReceiverID uuid.UUID  `json:"receiverId" gorm:"type:uuid;not null"`
+	Receiver   User       `json:"receiver" gorm:"foreignKey:ReceiverID"`
+	Content    string     `json:"content" gorm:"not null"`
+	IsRead     bool       `json:"isRead" gorm:"default:false"`
+	CreatedAt  time.Time  `json:"createdAt"`
 }
 
 type Notification struct {

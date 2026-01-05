@@ -98,3 +98,17 @@ func (r *MessageRepository) MarkAllAsRead(senderID, receiverID uuid.UUID) error 
 		Where("sender_id = ? AND receiver_id = ?", senderID, receiverID).
 		Update("is_read", true).Error
 }
+
+func (r *MessageRepository) FindByBookingID(bookingID uuid.UUID) ([]models.Message, error) {
+	var messages []models.Message
+	err := r.db.Preload("Sender").Preload("Receiver").
+		Where("booking_id = ?", bookingID).
+		Order("created_at ASC").Find(&messages).Error
+	return messages, err
+}
+
+func (r *MessageRepository) MarkBookingMessagesAsRead(bookingID, userID uuid.UUID) error {
+	return r.db.Model(&models.Message{}).
+		Where("booking_id = ? AND receiver_id = ?", bookingID, userID).
+		Update("is_read", true).Error
+}

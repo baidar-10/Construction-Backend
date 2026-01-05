@@ -22,8 +22,9 @@ func (h *MessageHandler) SendMessage(c *gin.Context) {
 	senderID, _ := middleware.GetUserIDFromContext(c)
 
 	var req struct {
-		ReceiverID string `json:"receiverId" binding:"required"`
-		Content    string `json:"content" binding:"required"`
+		ReceiverID string  `json:"receiverId" binding:"required"`
+		Content    string  `json:"content" binding:"required"`
+		BookingID  *string `json:"bookingId,omitempty"`
 	}
 
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -42,6 +43,15 @@ func (h *MessageHandler) SendMessage(c *gin.Context) {
 		ReceiverID: receiverID,
 		Content:    req.Content,
 		IsRead:     false,
+	}
+
+	if req.BookingID != nil && *req.BookingID != "" {
+		bookingID, err := uuid.Parse(*req.BookingID)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid booking ID"})
+			return
+		}
+		message.BookingID = &bookingID
 	}
 
 	if err := h.messageService.SendMessage(message); err != nil {
@@ -95,4 +105,36 @@ func (h *MessageHandler) MarkAsRead(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"message": "Message marked as read"})
+}
+
+func (h *MessageHandler) GetBookingMessages(c *gin.Context) {
+	bookingID, err := uuid.Parse(c.Param("bookingId"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid booking ID"})
+		return
+	}
+
+	messages, err := h.messageService.GetMessagesByBookingID(bookingID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"messages": messages, "count": len(messages)})
+}
+
+func (h *MessageHandler) MarkBookingMessagesAsRead(c *gin.Context) {
+	userID, _ := middleware.GetUserIDFromContext(c)
+	bookingID, err := uuid.Parse(c.Param("bookingId"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid booking ID"})
+		return
+	}
+
+	if err := h.messageService.MarkBookingMessagesAsRead(bookingID, userID); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Messages marked as read"})
 }

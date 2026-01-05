@@ -76,7 +76,7 @@ CREATE TABLE IF NOT EXISTS bookings (
     scheduled_time TIME,
     duration_hours INTEGER,
     location TEXT NOT NULL,
-    status VARCHAR(20) DEFAULT 'pending' CHECK (status IN ('pending', 'confirmed', 'in_progress', 'completed', 'cancelled')),
+    status VARCHAR(20) DEFAULT 'pending' CHECK (status IN ('pending', 'accepted', 'declined', 'confirmed', 'in_progress', 'completed', 'cancelled')),
     total_cost DECIMAL(10, 2),
     notes TEXT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -108,6 +108,7 @@ CREATE TABLE IF NOT EXISTS favorite_workers (
 -- Messages table
 CREATE TABLE IF NOT EXISTS messages (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    booking_id UUID REFERENCES bookings(id) ON DELETE CASCADE,
     sender_id UUID REFERENCES users(id) ON DELETE CASCADE,
     receiver_id UUID REFERENCES users(id) ON DELETE CASCADE,
     content TEXT NOT NULL,

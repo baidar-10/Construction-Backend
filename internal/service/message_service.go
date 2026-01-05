@@ -34,3 +34,11 @@ func (s *MessageService) MarkAsRead(messageID uuid.UUID) error {
 func (s *MessageService) MarkAllAsRead(senderID, receiverID uuid.UUID) error {
 	return s.messageRepo.MarkAllAsRead(senderID, receiverID)
 }
+
+func (s *MessageService) GetMessagesByBookingID(bookingID uuid.UUID) ([]models.Message, error) {
+	return s.messageRepo.FindByBookingID(bookingID)
+}
+
+func (s *MessageService) MarkBookingMessagesAsRead(bookingID, userID uuid.UUID) error {
+	return s.messageRepo.MarkBookingMessagesAsRead(bookingID, userID)
+}

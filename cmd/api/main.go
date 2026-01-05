@@ -120,19 +120,23 @@ func main() {
 		{
 			bookings.POST("", middleware.AuthMiddleware(cfg.JWTSecret), bookingHandler.CreateBooking)
 			bookings.GET("/user/:userId", middleware.AuthMiddleware(cfg.JWTSecret), bookingHandler.GetUserBookings)
-			bookings.GET("/worker/:workerId", middleware.AuthMiddleware(cfg.JWTSecret), bookingHandler.GetWorkerBookings)
-			bookings.PATCH("/:id/status", middleware.AuthMiddleware(cfg.JWTSecret), bookingHandler.UpdateBookingStatus)
-			bookings.DELETE("/:id", middleware.AuthMiddleware(cfg.JWTSecret), bookingHandler.CancelBooking)
+		bookings.GET("/worker/:workerId", middleware.AuthMiddleware(cfg.JWTSecret), bookingHandler.GetWorkerBookings)
+		bookings.PUT("/:id/accept", middleware.AuthMiddleware(cfg.JWTSecret), bookingHandler.AcceptBooking)
+		bookings.PUT("/:id/decline", middleware.AuthMiddleware(cfg.JWTSecret), bookingHandler.DeclineBooking)
+		bookings.PATCH("/:id/status", middleware.AuthMiddleware(cfg.JWTSecret), bookingHandler.UpdateBookingStatus)
+		bookings.DELETE("/:id", middleware.AuthMiddleware(cfg.JWTSecret), bookingHandler.CancelBooking)
 		}
 
 		// Message routes
 		messages := api.Group("/messages")
 		{
 			messages.Use(middleware.AuthMiddleware(cfg.JWTSecret))
-			messages.POST("", messageHandler.SendMessage)
-			messages.GET("/conversations", messageHandler.GetConversations)
-			messages.GET("/:userId", messageHandler.GetMessages)
-			messages.PATCH("/:id/read", messageHandler.MarkAsRead)
+		messages.POST("", messageHandler.SendMessage)
+		messages.GET("/conversations", messageHandler.GetConversations)
+		messages.GET("/:userId", messageHandler.GetMessages)
+		messages.GET("/booking/:bookingId", messageHandler.GetBookingMessages)
+		messages.PATCH("/:id/read", messageHandler.MarkAsRead)
+		messages.PATCH("/booking/:bookingId/read", messageHandler.MarkBookingMessagesAsRead)
 		}
 	}
 
