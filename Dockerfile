@@ -1,5 +1,5 @@
 # Build stage
-FROM golang:1.21-alpine AS builder
+FROM golang:1.24-alpine AS builder
 
 WORKDIR /app
 
@@ -10,7 +10,7 @@ RUN apk add --no-cache git
 COPY go.mod go.sum ./
 RUN go mod download
 
-# Copy source code
+# Copy source code (including docs folder for Swagger)
 COPY . .
 
 # Build the application
@@ -26,6 +26,7 @@ WORKDIR /root/
 # Copy the binary from builder
 COPY --from=builder /app/main .
 COPY --from=builder /app/.env* ./
+COPY --from=builder /app/docs ./docs
 
 # Create uploads directory
 RUN mkdir -p /app/uploads

@@ -1,0 +1,621 @@
+basePath: /api
+definitions:
+  models.Booking:
+    properties:
+      createdAt:
+        type: string
+      customer:
+        $ref: '#/definitions/models.Customer'
+      customerId:
+        type: string
+      description:
+        type: string
+      durationHours:
+        type: integer
+      id:
+        type: string
+      location:
+        type: string
+      notes:
+        type: string
+      scheduledDate:
+        type: string
+      scheduledTime:
+        type: string
+      status:
+        type: string
+      title:
+        type: string
+      totalCost:
+        type: number
+      updatedAt:
+        type: string
+      worker:
+        $ref: '#/definitions/models.Worker'
+      workerId:
+        type: string
+    type: object
+  models.Customer:
+    properties:
+      address:
+        type: string
+      city:
+        type: string
+      createdAt:
+        type: string
+      id:
+        type: string
+      postalCode:
+        type: string
+      state:
+        type: string
+      updatedAt:
+        type: string
+      user:
+        $ref: '#/definitions/models.User'
+      userId:
+        type: string
+    type: object
+  models.LoginRequest:
+    properties:
+      email:
+        type: string
+      password:
+        type: string
+    required:
+    - email
+    - password
+    type: object
+  models.Portfolio:
+    properties:
+      createdAt:
+        type: string
+      description:
+        type: string
+      id:
+        type: string
+      imageUrl:
+        type: string
+      title:
+        type: string
+      workerId:
+        type: string
+    type: object
+  models.RegisterRequest:
+    properties:
+      address:
+        description: Customer-specific fields
+        type: string
+      bio:
+        type: string
+      city:
+        type: string
+      email:
+        type: string
+      experienceYears:
+        type: integer
+      firstName:
+        type: string
+      hourlyRate:
+        type: number
+      lastName:
+        type: string
+      location:
+        type: string
+      password:
+        minLength: 8
+        type: string
+      phone:
+        type: string
+      postalCode:
+        type: string
+      skills:
+        items:
+          type: string
+        type: array
+      specialty:
+        description: Worker-specific fields
+        type: string
+      state:
+        type: string
+      userType:
+        enum:
+        - customer
+        - worker
+        type: string
+    required:
+    - email
+    - firstName
+    - lastName
+    - password
+    - userType
+    type: object
+  models.User:
+    properties:
+      avatarUrl:
+        type: string
+      createdAt:
+        type: string
+      email:
+        type: string
+      firstName:
+        type: string
+      id:
+        type: string
+      isActive:
+        type: boolean
+      lastName:
+        type: string
+      phone:
+        type: string
+      updatedAt:
+        type: string
+      userType:
+        description: '''customer'' or ''worker'''
+        type: string
+    type: object
+  models.Worker:
+    properties:
+      availabilityStatus:
+        type: string
+      bio:
+        type: string
+      createdAt:
+        type: string
+      experienceYears:
+        type: integer
+      hourlyRate:
+        type: number
+      id:
+        type: string
+      location:
+        type: string
+      portfolio:
+        items:
+          $ref: '#/definitions/models.Portfolio'
+        type: array
+      rating:
+        type: number
+      skills:
+        items:
+          type: string
+        type: array
+      specialty:
+        type: string
+      totalJobs:
+        type: integer
+      totalReviews:
+        type: integer
+      updatedAt:
+        type: string
+      user:
+        $ref: '#/definitions/models.User'
+      userId:
+        type: string
+    type: object
+host: localhost:8080
+info:
+  contact:
+    email: support@stroyhub.com
+    name: API Support
+  description: API for Construction Worker Marketplace Platform
+  license:
+    name: Apache 2.0
+    url: http://www.apache.org/licenses/LICENSE-2.0.html
+  termsOfService: http://swagger.io/terms/
+  title: Construction Backend API
+  version: "1.0"
+paths:
+  /admin/bookings:
+    get:
+      consumes:
+      - application/json
+      description: Get list of all bookings with pagination (admin only)
+      parameters:
+      - default: 1
+        description: Page number
+        in: query
+        name: page
+        type: integer
+      - default: 20
+        description: Items per page
+        in: query
+        name: limit
+        type: integer
+      - description: Filter by status
+        in: query
+        name: status
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: List of bookings
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties: true
+            type: object
+        "403":
+          description: Forbidden - admin access required
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get all bookings
+      tags:
+      - Admin
+  /admin/dashboard:
+    get:
+      consumes:
+      - application/json
+      description: Get platform statistics (admin only)
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Dashboard statistics
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties: true
+            type: object
+        "403":
+          description: Forbidden - admin access required
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get admin dashboard statistics
+      tags:
+      - Admin
+  /admin/users:
+    get:
+      consumes:
+      - application/json
+      description: Get list of all users with pagination (admin only)
+      parameters:
+      - default: 1
+        description: Page number
+        in: query
+        name: page
+        type: integer
+      - default: 20
+        description: Items per page
+        in: query
+        name: limit
+        type: integer
+      - description: Filter by user type (customer/worker)
+        in: query
+        name: userType
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: List of users
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties: true
+            type: object
+        "403":
+          description: Forbidden - admin access required
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get all users
+      tags:
+      - Admin
+  /admin/users/{id}:
+    delete:
+      consumes:
+      - application/json
+      description: Permanently delete a user (admin only)
+      parameters:
+      - description: User ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: User deleted
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid user ID
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties: true
+            type: object
+        "403":
+          description: Forbidden - admin access required
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Delete user
+      tags:
+      - Admin
+  /admin/users/{id}/toggle-status:
+    put:
+      consumes:
+      - application/json
+      description: Toggle user active status (admin only)
+      parameters:
+      - description: User ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: User status updated
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid user ID
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties: true
+            type: object
+        "403":
+          description: Forbidden - admin access required
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Block/Unblock user
+      tags:
+      - Admin
+  /admin/workers/{id}/verify:
+    put:
+      consumes:
+      - application/json
+      description: Verify worker's credentials (admin only)
+      parameters:
+      - description: Worker ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Worker verified
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid worker ID
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties: true
+            type: object
+        "403":
+          description: Forbidden - admin access required
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Verify worker
+      tags:
+      - Admin
+  /auth/login:
+    post:
+      consumes:
+      - application/json
+      description: Authenticate user and get JWT token
+      parameters:
+      - description: Login credentials
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/models.LoginRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Login successful with token
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad request
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties: true
+            type: object
+      summary: User login
+      tags:
+      - Auth
+  /auth/register:
+    post:
+      consumes:
+      - application/json
+      description: Register a new customer or worker account
+      parameters:
+      - description: Registration details
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/models.RegisterRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: User registered successfully
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad request
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Register a new user
+      tags:
+      - Auth
+  /bookings:
+    post:
+      consumes:
+      - application/json
+      description: Create a booking request for a worker (customers only)
+      parameters:
+      - description: Booking details
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/models.Booking'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Booking created successfully
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad request
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties: true
+            type: object
+        "403":
+          description: Forbidden - only customers can create bookings
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Create a new booking
+      tags:
+      - Bookings
+  /workers:
+    get:
+      consumes:
+      - application/json
+      description: Get list of all workers with optional filters
+      parameters:
+      - description: Filter by specialty
+        in: query
+        name: specialty
+        type: string
+      - description: Filter by location
+        in: query
+        name: location
+        type: string
+      - description: Minimum hourly rate
+        in: query
+        name: minRate
+        type: number
+      - description: Maximum hourly rate
+        in: query
+        name: maxRate
+        type: number
+      - description: Filter by availability status
+        in: query
+        name: availability
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: List of workers
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Get all workers
+      tags:
+      - Workers
+  /workers/{id}:
+    get:
+      consumes:
+      - application/json
+      description: Get detailed information about a specific worker
+      parameters:
+      - description: Worker ID (UUID)
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Worker details
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid worker ID
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Worker not found
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Get worker by ID
+      tags:
+      - Workers
+securityDefinitions:
+  BearerAuth:
+    description: Type "Bearer" followed by a space and JWT token.
+    in: header
+    name: Authorization
+    type: apiKey
+swagger: "2.0"

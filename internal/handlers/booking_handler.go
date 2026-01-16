@@ -18,6 +18,19 @@ func NewBookingHandler(bookingService *service.BookingService) *BookingHandler {
 	return &BookingHandler{bookingService: bookingService}
 }
 
+// CreateBooking godoc
+// @Summary Create a new booking
+// @Description Create a booking request for a worker (customers only)
+// @Tags Bookings
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Param request body models.Booking true "Booking details"
+// @Success 201 {object} map[string]interface{} "Booking created successfully"
+// @Failure 400 {object} map[string]interface{} "Bad request"
+// @Failure 401 {object} map[string]interface{} "Unauthorized"
+// @Failure 403 {object} map[string]interface{} "Forbidden - only customers can create bookings"
+// @Router /bookings [post]
 func (h *BookingHandler) CreateBooking(c *gin.Context) {
 	var booking models.Booking
 	if err := c.ShouldBindJSON(&booking); err != nil {
@@ -158,4 +171,115 @@ func (h *BookingHandler) CancelBooking(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"message": "Booking cancelled successfully"})
+}
+
+// CompleteBooking godoc
+// @Summary Complete a booking
+// @Description Mark a booking as completed by the worker
+// @Tags Bookings
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Param id path string true "Booking ID"
+// @Success 200 {object} map[string]interface{} "Booking completed successfully"
+// @Failure 400 {object} map[string]interface{} "Bad request"
+// @Failure 403 {object} map[string]interface{} "Forbidden - only workers can complete bookings"
+// @Router /bookings/{id}/complete [put]
+func (h *BookingHandler) CompleteBooking(c *gin.Context) {
+	id, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid booking ID"})
+		return
+	}
+
+	// Ensure authenticated user is a worker
+	userType, _ := middleware.GetUserTypeFromContext(c)
+	if userType != "worker" {
+		c.JSON(http.StatusForbidden, gin.H{"error": "Only workers can complete bookings"})
+		return
+	}
+
+	if err := h.bookingService.CompleteBooking(id); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Booking completed successfully"})
+}
+
+// GetOpenBookings godoc
+// @Summary Get all open bookings
+// @Description Get all bookings that are open for any worker to accept
+// @Tags Bookings
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Success 200 {object} map[string]interface{} "List of open bookings"
+// @Failure 403 {object} map[string]interface{} "Forbidden - only workers can view open bookings"
+// @Router /bookings/open [get]
+func (h *BookingHandler) GetOpenBookings(c *gin.Context) {
+// Ensure authenticated user is a worker
+userType, _ := middleware.GetUserTypeFromContext(c)
+if userType != "worker" {
+c.JSON(http.StatusForbidden, gin.H{"error": "Only workers can view open bookings"})
+return
+}
+
+bookings, err := h.bookingService.GetOpenBookings()
+if err != nil {
+c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+return
+}
+
+c.JSON(http.StatusOK, gin.H{"bookings": bookings, "count": len(bookings)})
+}
+
+// ClaimOpenBooking godoc
+// @Summary Claim an open booking
+// @Description Worker claims an open booking and becomes assigned to it
+// @Tags Bookings
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Param id path string true "Booking ID"
+// @Param request body map[string]string true "Worker ID"
+// @Success 200 {object} map[string]interface{} "Booking claimed successfully"
+// @Failure 400 {object} map[string]interface{} "Bad request"
+// @Failure 403 {object} map[string]interface{} "Forbidden - only workers can claim bookings"
+// @Router /bookings/{id}/claim [put]
+func (h *BookingHandler) ClaimOpenBooking(c *gin.Context) {
+id, err := uuid.Parse(c.Param("id"))
+if err != nil {
+c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid booking ID"})
+return
+}
+
+// Ensure authenticated user is a worker
+userType, _ := middleware.GetUserTypeFromContext(c)
+if userType != "worker" {
+c.JSON(http.StatusForbidden, gin.H{"error": "Only workers can claim bookings"})
+return
+}
+
+var req struct {
+WorkerID string `json:"workerId" binding:"required"`
+}
+
+if err := c.ShouldBindJSON(&req); err != nil {
+c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request data"})
+return
+}
+
+workerID, err := uuid.Parse(req.WorkerID)
+if err != nil {
+c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid worker ID"})
+return
+}
+
+if err := h.bookingService.ClaimOpenBooking(id, workerID); err != nil {
+c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+return
+}
+
+c.JSON(http.StatusOK, gin.H{"message": "Booking claimed successfully"})
 }

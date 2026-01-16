@@ -19,6 +19,20 @@ func NewWorkerHandler(workerService *service.WorkerService) *WorkerHandler {
 	return &WorkerHandler{workerService: workerService}
 }
 
+// GetAllWorkers godoc
+// @Summary Get all workers
+// @Description Get list of all workers with optional filters
+// @Tags Workers
+// @Accept json
+// @Produce json
+// @Param specialty query string false "Filter by specialty"
+// @Param location query string false "Filter by location"
+// @Param minRate query number false "Minimum hourly rate"
+// @Param maxRate query number false "Maximum hourly rate"
+// @Param availability query string false "Filter by availability status"
+// @Success 200 {object} map[string]interface{} "List of workers"
+// @Failure 500 {object} map[string]interface{} "Internal server error"
+// @Router /workers [get]
 func (h *WorkerHandler) GetAllWorkers(c *gin.Context) {
 	filters := make(map[string]interface{})
 
@@ -52,6 +66,17 @@ func (h *WorkerHandler) GetAllWorkers(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"workers": workers, "count": len(workers)})
 }
 
+// GetWorkerByID godoc
+// @Summary Get worker by ID
+// @Description Get detailed information about a specific worker
+// @Tags Workers
+// @Accept json
+// @Produce json
+// @Param id path string true "Worker ID (UUID)"
+// @Success 200 {object} map[string]interface{} "Worker details"
+// @Failure 400 {object} map[string]interface{} "Invalid worker ID"
+// @Failure 404 {object} map[string]interface{} "Worker not found"
+// @Router /workers/{id} [get]
 func (h *WorkerHandler) GetWorkerByID(c *gin.Context) {
 	param := c.Param("id")
 	log.Printf("GetWorkerByID called with param=%s\n", param)

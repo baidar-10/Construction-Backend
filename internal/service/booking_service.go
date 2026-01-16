@@ -97,3 +97,42 @@ func (s *BookingService) DeclineBooking(id uuid.UUID) error {
 
 	return s.bookingRepo.UpdateStatus(id, "declined")
 }
+
+func (s *BookingService) CompleteBooking(id uuid.UUID) error {
+	booking, err := s.bookingRepo.FindByID(id)
+	if err != nil {
+		return err
+	}
+
+	if booking.Status != "accepted" {
+		return errors.New("only accepted bookings can be marked as completed")
+	}
+
+	return s.bookingRepo.UpdateStatus(id, "completed")
+}
+func (s *BookingService) GetOpenBookings() ([]models.Booking, error) {
+return s.bookingRepo.FindOpenBookings()
+}
+
+func (s *BookingService) ClaimOpenBooking(bookingID uuid.UUID, workerID uuid.UUID) error {
+// Check if booking exists and is still open
+booking, err := s.bookingRepo.FindByID(bookingID)
+if err != nil {
+return err
+}
+
+if !booking.IsOpen {
+return errors.New("booking is not open for claims")
+}
+
+if booking.WorkerID != nil {
+return errors.New("booking has already been claimed")
+}
+
+if booking.Status != "pending" {
+return errors.New("only pending bookings can be claimed")
+}
+
+// Claim the booking
+return s.bookingRepo.ClaimOpenBooking(bookingID, workerID)
+}

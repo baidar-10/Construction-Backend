@@ -12,7 +12,31 @@ import (
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
+	
+	swaggerFiles "github.com/swaggo/files"
+	ginSwagger "github.com/swaggo/gin-swagger"
+	
+	_ "construction-backend/docs" // This will be generated
 )
+
+// @title           Construction Backend API
+// @version         1.0
+// @description     API for Construction Worker Marketplace Platform
+// @termsOfService  http://swagger.io/terms/
+
+// @contact.name   API Support
+// @contact.email  support@stroyhub.com
+
+// @license.name  Apache 2.0
+// @license.url   http://www.apache.org/licenses/LICENSE-2.0.html
+
+// @host      localhost:8080
+// @BasePath  /api
+
+// @securityDefinitions.apikey BearerAuth
+// @in header
+// @name Authorization
+// @description Type "Bearer" followed by a space and JWT token.
 
 func main() {
 	// Load configuration
@@ -40,6 +64,7 @@ func main() {
 	bookingService := service.NewBookingService(bookingRepo, customerRepo)
 	reviewService := service.NewReviewService(reviewRepo)
 	messageService := service.NewMessageService(messageRepo)
+	adminService := service.NewAdminService(db.DB, userRepo, workerRepo, bookingRepo, reviewRepo)
 
 	// Initialize handlers
 	authHandler := handlers.NewAuthHandler(authService)
@@ -48,6 +73,7 @@ func main() {
 	bookingHandler := handlers.NewBookingHandler(bookingService)
 	reviewHandler := handlers.NewReviewHandler(reviewService)
 	messageHandler := handlers.NewMessageHandler(messageService)
+	adminHandler := handlers.NewAdminHandler(adminService)
 
 	// Setup Gin router
 	router := gin.Default()
@@ -71,6 +97,9 @@ func main() {
 	router.GET("/health", func(c *gin.Context) {
 		c.JSON(200, gin.H{"status": "ok", "message": "Construction API is running"})
 	})
+
+	// Swagger documentation
+	router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 
 	// Serve uploaded files
 	router.Static("/uploads", "./uploads")
@@ -120,11 +149,14 @@ func main() {
 		{
 			bookings.POST("", middleware.AuthMiddleware(cfg.JWTSecret), bookingHandler.CreateBooking)
 			bookings.GET("/user/:userId", middleware.AuthMiddleware(cfg.JWTSecret), bookingHandler.GetUserBookings)
-		bookings.GET("/worker/:workerId", middleware.AuthMiddleware(cfg.JWTSecret), bookingHandler.GetWorkerBookings)
-		bookings.PUT("/:id/accept", middleware.AuthMiddleware(cfg.JWTSecret), bookingHandler.AcceptBooking)
-		bookings.PUT("/:id/decline", middleware.AuthMiddleware(cfg.JWTSecret), bookingHandler.DeclineBooking)
-		bookings.PATCH("/:id/status", middleware.AuthMiddleware(cfg.JWTSecret), bookingHandler.UpdateBookingStatus)
-		bookings.DELETE("/:id", middleware.AuthMiddleware(cfg.JWTSecret), bookingHandler.CancelBooking)
+			bookings.GET("/worker/:workerId", middleware.AuthMiddleware(cfg.JWTSecret), bookingHandler.GetWorkerBookings)
+			bookings.GET("/open", middleware.AuthMiddleware(cfg.JWTSecret), bookingHandler.GetOpenBookings)
+			bookings.PUT("/:id/accept", middleware.AuthMiddleware(cfg.JWTSecret), bookingHandler.AcceptBooking)
+			bookings.PUT("/:id/decline", middleware.AuthMiddleware(cfg.JWTSecret), bookingHandler.DeclineBooking)
+			bookings.PUT("/:id/complete", middleware.AuthMiddleware(cfg.JWTSecret), bookingHandler.CompleteBooking)
+			bookings.PUT("/:id/claim", middleware.AuthMiddleware(cfg.JWTSecret), bookingHandler.ClaimOpenBooking)
+			bookings.PATCH("/:id/status", middleware.AuthMiddleware(cfg.JWTSecret), bookingHandler.UpdateBookingStatus)
+			bookings.DELETE("/:id", middleware.AuthMiddleware(cfg.JWTSecret), bookingHandler.CancelBooking)
 		}
 
 		// Message routes
@@ -137,6 +169,20 @@ func main() {
 		messages.GET("/booking/:bookingId", messageHandler.GetBookingMessages)
 		messages.PATCH("/:id/read", messageHandler.MarkAsRead)
 		messages.PATCH("/booking/:bookingId/read", messageHandler.MarkBookingMessagesAsRead)
+		}
+
+		// Admin routes
+		admin := api.Group("/admin")
+		{
+			admin.Use(middleware.AuthMiddleware(cfg.JWTSecret))
+			admin.Use(middleware.AdminMiddleware())
+			
+			admin.GET("/dashboard", adminHandler.GetDashboardStats)
+			admin.GET("/users", adminHandler.GetAllUsers)
+			admin.PUT("/users/:id/toggle-status", adminHandler.ToggleUserStatus)
+			admin.DELETE("/users/:id", adminHandler.DeleteUser)
+			admin.GET("/bookings", adminHandler.GetAllBookings)
+			admin.PUT("/workers/:id/verify", adminHandler.VerifyWorker)
 		}
 	}
 

@@ -76,17 +76,18 @@ type Booking struct {
 	ID            uuid.UUID  `json:"id" gorm:"type:uuid;primary_key;default:uuid_generate_v4()"`
 	CustomerID    uuid.UUID  `json:"customerId" gorm:"type:uuid;not null"`
 	Customer      Customer   `json:"customer" gorm:"foreignKey:CustomerID"`
-	WorkerID      uuid.UUID  `json:"workerId" gorm:"type:uuid;not null"`
-	Worker        Worker     `json:"worker" gorm:"foreignKey:WorkerID"`
+	WorkerID      *uuid.UUID `json:"workerId,omitempty" gorm:"type:uuid"`
+	Worker        *Worker    `json:"worker,omitempty" gorm:"foreignKey:WorkerID"`
+	IsOpen        bool       `json:"isOpen" gorm:"default:false"`
 	Title         string     `json:"title" gorm:"not null"`
 	Description   string     `json:"description"`
 	ScheduledDate time.Time  `json:"scheduledDate" gorm:"type:date;not null"`
-	ScheduledTime *time.Time `json:"scheduledTime,omitempty" gorm:"type:time"`
 	DurationHours int        `json:"durationHours"`
 	Location      string     `json:"location" gorm:"not null"`
 	Status        string     `json:"status" gorm:"default:'pending'"`
 	TotalCost     float64    `json:"totalCost"`
 	Notes         string     `json:"notes"`
+	Review        *Review    `json:"review,omitempty" gorm:"foreignKey:BookingID"`
 	CreatedAt     time.Time  `json:"createdAt"`
 	UpdatedAt     time.Time  `json:"updatedAt"`
 }
