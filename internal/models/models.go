@@ -7,36 +7,39 @@ import (
 )
 
 type User struct {
-	ID           uuid.UUID `json:"id" gorm:"type:uuid;primary_key;default:uuid_generate_v4()"`
-	Email        string    `json:"email" gorm:"unique;not null"`
-	PasswordHash string    `json:"-" gorm:"not null"`
-	FirstName    string    `json:"firstName" gorm:"not null"`
-	LastName     string    `json:"lastName" gorm:"not null"`
-	Phone        string    `json:"phone"`
-	UserType     string    `json:"userType" gorm:"not null"` // 'customer' or 'worker'
-	AvatarURL    string    `json:"avatarUrl"`
-	IsActive     bool      `json:"isActive" gorm:"default:true"`
-	CreatedAt    time.Time `json:"createdAt"`
-	UpdatedAt    time.Time `json:"updatedAt"`
+	ID               uuid.UUID `json:"id" gorm:"type:uuid;primary_key;default:uuid_generate_v4()"`
+	Email            string    `json:"email" gorm:"unique;not null"`
+	PasswordHash     string    `json:"-" gorm:"not null"`
+	FirstName        string    `json:"firstName" gorm:"not null"`
+	LastName         string    `json:"lastName" gorm:"not null"`
+	Phone            string    `json:"phone"`
+	UserType         string    `json:"userType" gorm:"not null"` // 'customer' or 'worker'
+	AvatarURL        string    `json:"avatarUrl"`
+	IsActive         bool      `json:"isActive" gorm:"default:true"`
+	IsVerified       bool      `json:"isVerified" gorm:"default:false"`
+	VerificationCode string    `json:"-" gorm:"size:10"`
+	CodeExpiresAt    time.Time `json:"-"`
+	CreatedAt        time.Time `json:"createdAt"`
+	UpdatedAt        time.Time `json:"updatedAt"`
 }
 
 type Worker struct {
-	ID                 uuid.UUID `json:"id" gorm:"type:uuid;primary_key;default:uuid_generate_v4()"`
-	UserID             uuid.UUID `json:"userId" gorm:"type:uuid;unique;not null"`
-	User               User      `json:"user" gorm:"foreignKey:UserID"`
-	Specialty          string    `json:"specialty" gorm:"not null"`
-	HourlyRate         float64   `json:"hourlyRate"`
-	ExperienceYears    int       `json:"experienceYears"`
-	Bio                string    `json:"bio"`
-	Location           string    `json:"location"`
-	AvailabilityStatus string    `json:"availabilityStatus" gorm:"default:'available'"`
-	Rating             float64   `json:"rating" gorm:"default:0.0"`
-	TotalReviews       int       `json:"totalReviews" gorm:"default:0"`
-	TotalJobs          int       `json:"totalJobs" gorm:"default:0"`
-	Skills             []string  `json:"skills" gorm:"-"`
+	ID                 uuid.UUID   `json:"id" gorm:"type:uuid;primary_key;default:uuid_generate_v4()"`
+	UserID             uuid.UUID   `json:"userId" gorm:"type:uuid;unique;not null"`
+	User               User        `json:"user" gorm:"foreignKey:UserID"`
+	Specialty          string      `json:"specialty" gorm:"not null"`
+	HourlyRate         float64     `json:"hourlyRate"`
+	ExperienceYears    int         `json:"experienceYears"`
+	Bio                string      `json:"bio"`
+	Location           string      `json:"location"`
+	AvailabilityStatus string      `json:"availabilityStatus" gorm:"default:'available'"`
+	Rating             float64     `json:"rating" gorm:"default:0.0"`
+	TotalReviews       int         `json:"totalReviews" gorm:"default:0"`
+	TotalJobs          int         `json:"totalJobs" gorm:"default:0"`
+	Skills             []string    `json:"skills" gorm:"-"`
 	Portfolio          []Portfolio `json:"portfolio,omitempty" gorm:"foreignKey:WorkerID"`
-	CreatedAt          time.Time `json:"createdAt"`
-	UpdatedAt          time.Time `json:"updatedAt"`
+	CreatedAt          time.Time   `json:"createdAt"`
+	UpdatedAt          time.Time   `json:"updatedAt"`
 }
 
 type WorkerSkill struct {
@@ -136,15 +139,29 @@ type Notification struct {
 	CreatedAt time.Time `json:"createdAt"`
 }
 
+// BookingApplication represents a worker's application to an open booking
+type BookingApplication struct {
+	ID            uuid.UUID `json:"id" gorm:"type:uuid;primary_key;default:uuid_generate_v4()"`
+	BookingID     uuid.UUID `json:"bookingId" gorm:"type:uuid;not null"`
+	Booking       *Booking  `json:"booking,omitempty" gorm:"foreignKey:BookingID"`
+	WorkerID      uuid.UUID `json:"workerId" gorm:"type:uuid;not null"`
+	Worker        *Worker   `json:"worker,omitempty" gorm:"foreignKey:WorkerID"`
+	Message       string    `json:"message"`
+	ProposedPrice float64   `json:"proposedPrice"`
+	Status        string    `json:"status" gorm:"default:'pending'"` // pending, accepted, rejected
+	CreatedAt     time.Time `json:"createdAt"`
+	UpdatedAt     time.Time `json:"updatedAt"`
+}
+
 // Request/Response DTOs
 type RegisterRequest struct {
-	Email           string   `json:"email" binding:"required,email"`
-	Password        string   `json:"password" binding:"required,min=8"`
-	FirstName       string   `json:"firstName" binding:"required"`
-	LastName        string   `json:"lastName" binding:"required"`
-	Phone           string   `json:"phone"`
-	UserType        string   `json:"userType" binding:"required,oneof=customer worker"`
-	
+	Email     string `json:"email" binding:"required,email"`
+	Password  string `json:"password" binding:"required,min=8"`
+	FirstName string `json:"firstName" binding:"required"`
+	LastName  string `json:"lastName" binding:"required"`
+	Phone     string `json:"phone"`
+	UserType  string `json:"userType" binding:"required,oneof=customer worker"`
+
 	// Worker-specific fields
 	Specialty       string   `json:"specialty,omitempty"`
 	HourlyRate      float64  `json:"hourlyRate,omitempty"`
@@ -152,12 +169,12 @@ type RegisterRequest struct {
 	Bio             string   `json:"bio,omitempty"`
 	Location        string   `json:"location,omitempty"`
 	Skills          []string `json:"skills,omitempty"`
-	
+
 	// Customer-specific fields
-	Address         string   `json:"address,omitempty"`
-	City            string   `json:"city,omitempty"`
-	State           string   `json:"state,omitempty"`
-	PostalCode      string   `json:"postalCode,omitempty"`
+	Address    string `json:"address,omitempty"`
+	City       string `json:"city,omitempty"`
+	State      string `json:"state,omitempty"`
+	PostalCode string `json:"postalCode,omitempty"`
 }
 
 type LoginRequest struct {
@@ -180,4 +197,9 @@ type UpdateProfileRequest struct {
 type ChangePasswordRequest struct {
 	CurrentPassword string `json:"currentPassword" binding:"required"`
 	NewPassword     string `json:"newPassword" binding:"required,min=6"`
+}
+
+type VerifyEmailRequest struct {
+	Email string `json:"email" binding:"required,email"`
+	Code  string `json:"code" binding:"required"`
 }

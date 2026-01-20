@@ -48,6 +48,30 @@ func (h *AuthHandler) Register(c *gin.Context) {
 	c.JSON(http.StatusCreated, gin.H{"user": user, "message": "User registered successfully"})
 }
 
+// VerifyEmail godoc
+// @Summary Verify user email
+// @Description Verify a user's email with code
+// @Tags Auth
+// @Accept json
+// @Produce json
+// @Param request body models.VerifyEmailRequest true "Verification details"
+// @Success 200 {object} map[string]interface{} "Email verified successfully"
+// @Failure 400 {object} map[string]interface{} "Bad request"
+// @Router /auth/verify-email [post]
+func (h *AuthHandler) VerifyEmail(c *gin.Context) {
+	var req models.VerifyEmailRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	err := h.authService.VerifyEmail(req.Email, req.Code)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"message": "Email verified successfully"})
+}
+
 // Login godoc
 // @Summary User login
 // @Description Authenticate user and get JWT token

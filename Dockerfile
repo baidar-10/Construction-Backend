@@ -21,7 +21,7 @@ FROM alpine:latest
 
 RUN apk --no-cache add ca-certificates tzdata
 
-WORKDIR /root/
+WORKDIR /app
 
 # Copy the binary from builder
 COPY --from=builder /app/main .
@@ -29,7 +29,7 @@ COPY --from=builder /app/.env* ./
 COPY --from=builder /app/docs ./docs
 
 # Create uploads directory
-RUN mkdir -p /app/uploads
+RUN mkdir -p ./uploads
 
 EXPOSE 8080
 

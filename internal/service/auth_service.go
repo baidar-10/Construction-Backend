@@ -4,6 +4,7 @@ import (
 	"construction-backend/internal/models"
 	"construction-backend/internal/repository"
 	"errors"
+	"math/rand"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
@@ -18,15 +19,17 @@ type AuthService struct {
 	customerRepo *repository.CustomerRepository
 	jwtSecret    string
 	db           *gorm.DB
+	emailService *EmailService
 }
 
-func NewAuthService(userRepo *repository.UserRepository, workerRepo *repository.WorkerRepository, customerRepo *repository.CustomerRepository, jwtSecret string, db *gorm.DB) *AuthService {
+func NewAuthService(userRepo *repository.UserRepository, workerRepo *repository.WorkerRepository, customerRepo *repository.CustomerRepository, jwtSecret string, db *gorm.DB, emailService *EmailService) *AuthService {
 	return &AuthService{
 		userRepo:     userRepo,
 		workerRepo:   workerRepo,
 		customerRepo: customerRepo,
 		jwtSecret:    jwtSecret,
 		db:           db,
+		emailService: emailService,
 	}
 }
 
@@ -55,6 +58,10 @@ func (s *AuthService) Register(req *models.RegisterRequest) (*models.User, error
 		return nil, errors.New("last name is required")
 	}
 
+	// Generate verification code
+	verificationCode := generateVerificationCode(6)
+	codeExpiresAt := time.Now().Add(15 * time.Minute)
+
 	// Start transaction
 	tx := s.db.Begin()
 	defer func() {
@@ -65,18 +72,32 @@ func (s *AuthService) Register(req *models.RegisterRequest) (*models.User, error
 
 	// Create user
 	user := &models.User{
-		Email:        req.Email,
-		PasswordHash: string(hashedPassword),
-		FirstName:    req.FirstName,
-		LastName:     req.LastName,
-		Phone:        req.Phone,
-		UserType:     req.UserType,
-		IsActive:     true,
+		Email:             req.Email,
+		PasswordHash:      string(hashedPassword),
+		FirstName:         req.FirstName,
+		LastName:          req.LastName,
+		Phone:             req.Phone,
+		UserType:          req.UserType,
+		IsActive:          true,
+		IsVerified:        false,
+		VerificationCode:  verificationCode,
+		CodeExpiresAt:     codeExpiresAt,
 	}
 
 	if err := tx.Create(user).Error; err != nil {
 		tx.Rollback()
 		return nil, err
+	}
+
+	// Send verification email
+	if s.emailService != nil {
+		subject := "Your verification code"
+		body := "Your verification code is: " + verificationCode
+		err := s.emailService.SendMail(user.Email, subject, body)
+		if err != nil {
+			tx.Rollback()
+			return nil, errors.New("failed to send verification email")
+		}
 	}
 
 	// Create profile based on user type
@@ -219,4 +240,39 @@ func (s *AuthService) ChangePassword(userID uuid.UUID, req *models.ChangePasswor
 	}
 
 	return nil
+}
+
+// VerifyEmail verifies the user's email with the provided code
+func (s *AuthService) VerifyEmail(email, code string) error {
+	user, err := s.userRepo.FindByEmail(email)
+	if err != nil {
+		return errors.New("user not found")
+	}
+
+	// Check if code is expired
+	if time.Now().After(user.CodeExpiresAt) {
+		return errors.New("verification code has expired")
+	}
+
+	// Check if code matches
+	if user.VerificationCode != code {
+		return errors.New("invalid verification code")
+	}
+
+	// Mark as verified
+	user.IsVerified = true
+	user.VerificationCode = ""
+	user.CodeExpiresAt = time.Time{}
+
+	return s.userRepo.Update(user)
+}
+
+// generateVerificationCode returns a random numeric code of given length
+func generateVerificationCode(length int) string {
+	digits := "0123456789"
+	code := make([]byte, length)
+	for i := range code {
+		code[i] = digits[rand.Intn(len(digits))]
+	}
+	return string(code)
 }

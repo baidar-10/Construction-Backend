@@ -12,10 +12,10 @@ import (
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
-	
+
 	swaggerFiles "github.com/swaggo/files"
 	ginSwagger "github.com/swaggo/gin-swagger"
-	
+
 	_ "construction-backend/docs" // This will be generated
 )
 
@@ -58,7 +58,8 @@ func main() {
 	messageRepo := repository.NewMessageRepository(db)
 
 	// Initialize services
-	authService := service.NewAuthService(userRepo, workerRepo, customerRepo, cfg.JWTSecret, db.DB)
+	emailService := service.NewEmailService()
+	authService := service.NewAuthService(userRepo, workerRepo, customerRepo, cfg.JWTSecret, db.DB, emailService)
 	workerService := service.NewWorkerService(workerRepo, userRepo)
 	customerService := service.NewCustomerService(customerRepo)
 	bookingService := service.NewBookingService(bookingRepo, customerRepo)
@@ -119,18 +120,18 @@ func main() {
 			auth.PUT("/profile/:userId/password", middleware.AuthMiddleware(cfg.JWTSecret), authHandler.ChangePassword)
 		}
 
-			// Worker routes
-			workers := api.Group("/workers")
-			{
-				workers.GET("", workerHandler.GetAllWorkers)
-				workers.GET("/user/:userId", middleware.AuthMiddleware(cfg.JWTSecret), workerHandler.GetWorkerByUserID)
+		// Worker routes
+		workers := api.Group("/workers")
+		{
+			workers.GET("", workerHandler.GetAllWorkers)
+			workers.GET("/user/:userId", middleware.AuthMiddleware(cfg.JWTSecret), workerHandler.GetWorkerByUserID)
 			workers.GET("/filter", workerHandler.FilterWorkers)
-		// Get worker by ID
-		workers.GET("/:id", workerHandler.GetWorkerByID)
-		workers.PUT("/:id", middleware.AuthMiddleware(cfg.JWTSecret), workerHandler.UpdateWorker)
-		workers.POST("/:id/portfolio", middleware.AuthMiddleware(cfg.JWTSecret), workerHandler.AddPortfolio)
-		workers.GET("/:id/reviews", reviewHandler.GetWorkerReviews)
-		workers.POST("/:id/reviews", middleware.AuthMiddleware(cfg.JWTSecret), reviewHandler.CreateReview)
+			// Get worker by ID
+			workers.GET("/:id", workerHandler.GetWorkerByID)
+			workers.PUT("/:id", middleware.AuthMiddleware(cfg.JWTSecret), workerHandler.UpdateWorker)
+			workers.POST("/:id/portfolio", middleware.AuthMiddleware(cfg.JWTSecret), workerHandler.AddPortfolio)
+			workers.GET("/:id/reviews", reviewHandler.GetWorkerReviews)
+			workers.POST("/:id/reviews", middleware.AuthMiddleware(cfg.JWTSecret), reviewHandler.CreateReview)
 		}
 
 		// Customer routes
@@ -163,12 +164,12 @@ func main() {
 		messages := api.Group("/messages")
 		{
 			messages.Use(middleware.AuthMiddleware(cfg.JWTSecret))
-		messages.POST("", messageHandler.SendMessage)
-		messages.GET("/conversations", messageHandler.GetConversations)
-		messages.GET("/:userId", messageHandler.GetMessages)
-		messages.GET("/booking/:bookingId", messageHandler.GetBookingMessages)
-		messages.PATCH("/:id/read", messageHandler.MarkAsRead)
-		messages.PATCH("/booking/:bookingId/read", messageHandler.MarkBookingMessagesAsRead)
+			messages.POST("", messageHandler.SendMessage)
+			messages.GET("/conversations", messageHandler.GetConversations)
+			messages.GET("/:userId", messageHandler.GetMessages)
+			messages.GET("/booking/:bookingId", messageHandler.GetBookingMessages)
+			messages.PATCH("/:id/read", messageHandler.MarkAsRead)
+			messages.PATCH("/booking/:bookingId/read", messageHandler.MarkBookingMessagesAsRead)
 		}
 
 		// Admin routes
@@ -176,7 +177,7 @@ func main() {
 		{
 			admin.Use(middleware.AuthMiddleware(cfg.JWTSecret))
 			admin.Use(middleware.AdminMiddleware())
-			
+
 			admin.GET("/dashboard", adminHandler.GetDashboardStats)
 			admin.GET("/users", adminHandler.GetAllUsers)
 			admin.PUT("/users/:id/toggle-status", adminHandler.ToggleUserStatus)
