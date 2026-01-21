@@ -59,7 +59,7 @@ jobs:
           port: ${{ secrets.SERVER_PORT || 22 }}
           script: |
             # Navigate to project directory
-            cd /buildconnect/backend || exit 1
+            cd ~./buildconnect/backend || exit 1
             
             # Pull latest code (optional, if you need updated docker-compose.yml)
             git pull origin main
