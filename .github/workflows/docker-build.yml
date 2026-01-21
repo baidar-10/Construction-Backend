@@ -1,4 +1,4 @@
-name: Build and Push Backend
+name: Build, Push and Deploy
 
 on:
   push:
@@ -7,10 +7,10 @@ on:
 
 env:
   REGISTRY: docker.io
-  IMAGE_NAME: your-dockerhub-username/buildconnect-backend
+  IMAGE_NAME: baidar0/buildconnect-backend
 
 jobs:
-  build-and-push:
+  build-and-deploy:
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -50,5 +50,58 @@ jobs:
           cache-from: type=registry,ref=${{ env.IMAGE_NAME }}:buildcache
           cache-to: type=registry,ref=${{ env.IMAGE_NAME }}:buildcache,mode=max
 
-      - name: Image digest
-        run: echo "Image pushed with digest ${{ steps.build.outputs.digest }}"
+      - name: Deploy to Server
+        uses: appleboy/ssh-action@v1.0.0
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USERNAME }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          port: ${{ secrets.SERVER_PORT || 22 }}
+          script: |
+            # Navigate to project directory
+            cd /buildconnect/backend || exit 1
+            
+            # Pull latest code (optional, if you need updated docker-compose.yml)
+            git pull origin main
+            
+            # Login to Docker Hub
+            echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
+            
+            # Pull the latest image
+            docker pull ${{ env.IMAGE_NAME }}:latest
+            
+            # Stop and remove old containers
+            docker-compose down
+            
+            # Start services with the new image
+            docker-compose up -d
+            
+            # Clean up old images
+            docker image prune -f
+            
+            # Show running containers
+            docker-compose ps
+
+      - name: Verify Deployment
+        uses: appleboy/ssh-action@v1.0.0
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USERNAME }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          port: ${{ secrets.SERVER_PORT || 22 }}
+          script: |
+            cd /buildconnect/backend
+            
+            # Wait for services to be healthy
+            echo "Waiting for services to start..."
+            sleep 10
+            
+            # Check if backend is running
+            if docker-compose ps | grep -q "construction_backend.*Up"; then
+              echo "✅ Backend is running"
+              docker-compose logs --tail=50 backend
+            else
+              echo "❌ Backend failed to start"
+              docker-compose logs backend
+              exit 1
+            fi
