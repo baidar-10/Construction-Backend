@@ -55,7 +55,7 @@ jobs:
         with:
           host: ${{ secrets.SERVER_HOST }}
           username: ${{ secrets.SERVER_USERNAME }}
-          key: ${{ secrets.SERVER_PASSWORD }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}  # Using SSH key now
           port: ${{ secrets.SERVER_PORT || 22 }}
           script: |
             # Navigate to project directory
@@ -87,7 +87,7 @@ jobs:
         with:
           host: ${{ secrets.SERVER_HOST }}
           username: ${{ secrets.SERVER_USERNAME }}
-          key: ${{ secrets.SERVER_PASSWORD }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}  # Using SSH key now
           port: ${{ secrets.SERVER_PORT || 22 }}
           script: |
             cd /buildconnect/backend
