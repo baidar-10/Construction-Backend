@@ -101,7 +101,7 @@ func (h *AuthHandler) Login(c *gin.Context) {
 
 func (h *AuthHandler) GetCurrentUser(c *gin.Context) {
 	userID, _ := middleware.GetUserIDFromContext(c)
-	
+
 	user, err := h.authService.GetCurrentUser(userID)
 	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "User not found", "message": "User not found"})
@@ -268,4 +268,4 @@ func (h *AuthHandler) ChangePassword(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"message": "Password changed successfully"})
-} 
+}

@@ -10,11 +10,11 @@ import (
 )
 
 type AdminService struct {
-	db              *gorm.DB
-	userRepo        *repository.UserRepository
-	workerRepo      *repository.WorkerRepository
-	bookingRepo     *repository.BookingRepository
-	reviewRepo      *repository.ReviewRepository
+	db          *gorm.DB
+	userRepo    *repository.UserRepository
+	workerRepo  *repository.WorkerRepository
+	bookingRepo *repository.BookingRepository
+	reviewRepo  *repository.ReviewRepository
 }
 
 func NewAdminService(
