@@ -90,7 +90,7 @@ jobs:
           key: ${{ secrets.SSH_PRIVATE_KEY }}  # Using SSH key now
           port: ${{ secrets.SERVER_PORT || 22 }}
           script: |
-            cd /buildconnect/backend
+            cd ~/buildconnect/backend
             
             # Wait for services to be healthy
             echo "Waiting for services to start..."
