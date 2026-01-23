@@ -1,4 +1,4 @@
-name: Build, Push and Deploy
+name: Build, Push and Deploy Backend
 
 on:
   push:
@@ -55,28 +55,27 @@ jobs:
         with:
           host: ${{ secrets.SERVER_HOST }}
           username: ${{ secrets.SERVER_USERNAME }}
-          key: ${{ secrets.SSH_PRIVATE_KEY }}  # Using SSH key now
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
           port: ${{ secrets.SERVER_PORT || 22 }}
           script: |
-            # Navigate to project directory
             cd ~/buildconnect/backend || exit 1
-             
-            # Login to Docker Hub
+            
             echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
             
-            # Pull the latest image
-            docker pull ${{ env.IMAGE_NAME }}:latest
+            # Pull with retries
+            for i in 1 2 3; do
+              docker pull ${{ env.IMAGE_NAME }}:latest && break || sleep 10
+            done
             
-            # Stop and remove old containers
-            /usr/bin/docker-compose down
+            # Stop and remove ONLY the backend container
+            /usr/bin/docker-compose stop backend
+            /usr/bin/docker-compose rm -f backend
             
-            # Start services with the new image
-            /usr/bin/docker-compose up -d
+            # Start fresh backend container
+            /usr/bin/docker-compose up -d backend
             
-            # Clean up old images
             docker image prune -f
             
-            # Show running containers
             /usr/bin/docker-compose ps
 
       - name: Verify Deployment
@@ -84,17 +83,15 @@ jobs:
         with:
           host: ${{ secrets.SERVER_HOST }}
           username: ${{ secrets.SERVER_USERNAME }}
-          key: ${{ secrets.SSH_PRIVATE_KEY }}  # Using SSH key now
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
           port: ${{ secrets.SERVER_PORT || 22 }}
           script: |
             cd ~/buildconnect/backend
             
-            # Wait for services to be healthy
-            echo "Waiting for services to start..."
-            sleep 10
+            echo "Waiting for backend to start..."
+            sleep 15
             
-            # Check if backend is running
-            if /usr/bin/docker-compose ps | grep -q "construction_backend.*Up"; then
+            if /usr/bin/docker-compose ps | grep -q "buildconnect-backend.*Up"; then
               echo "✅ Backend is running"
               /usr/bin/docker-compose logs --tail=50 backend
             else
