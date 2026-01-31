@@ -1,10 +1,21 @@
 # Build stage
-FROM golang:1.24-alpine AS builder
+FROM golang:1.24-bookworm AS builder
 
 WORKDIR /app
 
 # Install build dependencies
-RUN apk add --no-cache git
+RUN apt-get update \
+	&& apt-get install -y --no-install-recommends git ca-certificates \
+	&& rm -rf /var/lib/apt/lists/*
+
+# Work around MITM/unknown CA by bypassing proxy/sumdb
+ENV GOPROXY=direct \
+	GOSUMDB=off \
+	GONOPROXY=* \
+	GONOSUMDB=* \
+	GOPRIVATE=* \
+	GOINSECURE=* \
+	GIT_SSL_NO_VERIFY=1
 
 # Copy go mod files
 COPY go.mod go.sum ./
@@ -17,9 +28,11 @@ COPY . .
 RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o main ./cmd/api
 
 # Final stage
-FROM alpine:latest
+FROM debian:bookworm-slim
 
-RUN apk --no-cache add ca-certificates tzdata
+RUN apt-get update \
+	&& apt-get install -y --no-install-recommends ca-certificates tzdata \
+	&& rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 

@@ -20,7 +20,8 @@ services:
       retries: 5
 
   backend:
-    image: baidar0/buildconnect-backend:latest  # Changed from build
+    build: .
+    image: construction-backend:local
     container_name: construction_backend
     environment:
       DB_HOST: postgres

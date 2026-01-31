@@ -12,6 +12,9 @@ CREATE TABLE IF NOT EXISTS users (
     user_type VARCHAR(20) NOT NULL CHECK (user_type IN ('customer', 'worker')),
     avatar_url TEXT,
     is_active BOOLEAN DEFAULT true,
+    is_verified BOOLEAN DEFAULT false,
+    verification_code VARCHAR(10),
+    code_expires_at TIMESTAMP,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
