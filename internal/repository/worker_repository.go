@@ -21,7 +21,7 @@ func (r *WorkerRepository) Create(worker *models.Worker) error {
 
 func (r *WorkerRepository) FindAll(filters map[string]interface{}) ([]models.Worker, error) {
 	var workers []models.Worker
-	query := r.db.Preload("User").Preload("Portfolio")
+	query := r.db.Preload("User").Preload("Portfolio").Preload("TeamMembers")
 
 	if specialty, ok := filters["specialty"].(string); ok && specialty != "" {
 		query = query.Where("specialty = ?", specialty)
@@ -59,7 +59,7 @@ func (r *WorkerRepository) FindAll(filters map[string]interface{}) ([]models.Wor
 
 func (r *WorkerRepository) FindByID(id uuid.UUID) (*models.Worker, error) {
 	var worker models.Worker
-	err := r.db.Preload("User").Preload("Portfolio").First(&worker, "id = ?", id).Error
+	err := r.db.Preload("User").Preload("Portfolio").Preload("TeamMembers").First(&worker, "id = ?", id).Error
 	if err != nil {
 		return nil, err
 	}
@@ -77,7 +77,7 @@ func (r *WorkerRepository) FindByID(id uuid.UUID) (*models.Worker, error) {
 
 func (r *WorkerRepository) FindByUserID(userID uuid.UUID) (*models.Worker, error) {
 	var worker models.Worker
-	err := r.db.Preload("User").Where("user_id = ?", userID).First(&worker).Error
+	err := r.db.Preload("User").Preload("TeamMembers").Where("user_id = ?", userID).First(&worker).Error
 	return &worker, err
 }
 
@@ -89,7 +89,7 @@ func (r *WorkerRepository) Search(query string) ([]models.Worker, error) {
 	var workers []models.Worker
 	searchPattern := "%" + query + "%"
 	
-	err := r.db.Preload("User").Preload("Portfolio").
+	err := r.db.Preload("User").Preload("Portfolio").Preload("TeamMembers").
 		Joins("JOIN users ON users.id = workers.user_id").
 		Where("users.first_name ILIKE ? OR users.last_name ILIKE ? OR workers.specialty ILIKE ? OR workers.location ILIKE ?",
 			searchPattern, searchPattern, searchPattern, searchPattern).
@@ -126,7 +126,7 @@ func (r *WorkerRepository) FilterBySkill(skill string) ([]models.Worker, error) 
 
 	var workers []models.Worker
 	if len(workerIDs) > 0 {
-		err = r.db.Preload("User").Preload("Portfolio").Where("id IN ?", workerIDs).Find(&workers).Error
+			err = r.db.Preload("User").Preload("Portfolio").Preload("TeamMembers").Where("id IN ?", workerIDs).Find(&workers).Error
 		if err != nil {
 			return nil, err
 		}

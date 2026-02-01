@@ -45,6 +45,15 @@ CREATE TABLE IF NOT EXISTS worker_skills (
     UNIQUE(worker_id, skill)
 );
 
+-- Worker team members table
+CREATE TABLE IF NOT EXISTS team_members (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    worker_id UUID REFERENCES workers(id) ON DELETE CASCADE,
+    name VARCHAR(200) NOT NULL,
+    specialization TEXT NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
 -- Worker certifications
 CREATE TABLE IF NOT EXISTS worker_certifications (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
@@ -171,6 +180,7 @@ CREATE INDEX idx_messages_sender ON messages(sender_id);
 CREATE INDEX idx_messages_receiver ON messages(receiver_id);
 CREATE INDEX idx_notifications_user_id ON notifications(user_id);
 CREATE INDEX idx_worker_skills_worker_id ON worker_skills(worker_id);
+CREATE INDEX IF NOT EXISTS idx_team_members_worker_id ON team_members(worker_id);
 
 -- Create function to update updated_at timestamp
 CREATE OR REPLACE FUNCTION update_updated_at_column()
