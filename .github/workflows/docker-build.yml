@@ -60,6 +60,9 @@ jobs:
           script: |
             cd ~/buildconnect/backend || exit 1
             
+            # Update docker-compose.yml and other configs from repo
+            git pull origin main
+            
             echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
             
             # Pull with retries
