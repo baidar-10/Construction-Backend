@@ -81,7 +81,7 @@ func (r *MessageRepository) GetConversations(userID uuid.UUID) ([]map[string]int
 		var user models.User
 		r.db.First(&user, "id = ?", otherUserID)
 
-		isRead := senderID != userID || unreadCount == 0
+		isRead := unreadCount == 0
 
 		conv = map[string]interface{}{
 			"userId": otherUserID,
