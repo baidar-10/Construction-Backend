@@ -54,6 +54,7 @@ func main() {
 	workerRepo := repository.NewWorkerRepository(db)
 	customerRepo := repository.NewCustomerRepository(db)
 	bookingRepo := repository.NewBookingRepository(db)
+	applicationRepo := repository.NewApplicationRepository(db.DB)
 	reviewRepo := repository.NewReviewRepository(db)
 	messageRepo := repository.NewMessageRepository(db)
 
@@ -63,6 +64,7 @@ func main() {
 	workerService := service.NewWorkerService(workerRepo, userRepo)
 	customerService := service.NewCustomerService(customerRepo)
 	bookingService := service.NewBookingService(bookingRepo, customerRepo)
+	applicationService := service.NewApplicationService(applicationRepo, bookingRepo)
 	reviewService := service.NewReviewService(reviewRepo)
 	messageService := service.NewMessageService(messageRepo)
 	adminService := service.NewAdminService(db.DB, userRepo, workerRepo, bookingRepo, reviewRepo)
@@ -72,6 +74,7 @@ func main() {
 	workerHandler := handlers.NewWorkerHandler(workerService)
 	customerHandler := handlers.NewCustomerHandler(customerService)
 	bookingHandler := handlers.NewBookingHandler(bookingService)
+	applicationHandler := handlers.NewApplicationHandler(applicationService, workerService)
 	reviewHandler := handlers.NewReviewHandler(reviewService)
 	messageHandler := handlers.NewMessageHandler(messageService)
 	adminHandler := handlers.NewAdminHandler(adminService)
@@ -158,6 +161,17 @@ func main() {
 			bookings.PUT("/:id/claim", middleware.AuthMiddleware(cfg.JWTSecret), bookingHandler.ClaimOpenBooking)
 			bookings.PATCH("/:id/status", middleware.AuthMiddleware(cfg.JWTSecret), bookingHandler.UpdateBookingStatus)
 			bookings.DELETE("/:id", middleware.AuthMiddleware(cfg.JWTSecret), bookingHandler.CancelBooking)
+		}
+
+		// Application routes
+		applications := api.Group("/applications")
+		applications.Use(middleware.AuthMiddleware(cfg.JWTSecret))
+		{
+			applications.POST("", applicationHandler.CreateApplication)
+			applications.GET("/my", applicationHandler.GetWorkerApplications)
+			applications.GET("/booking/:bookingId", applicationHandler.GetBookingApplications)
+			applications.PUT("/:applicationId/accept", applicationHandler.AcceptApplication)
+			applications.PUT("/:applicationId/reject", applicationHandler.RejectApplication)
 		}
 
 		// Message routes
