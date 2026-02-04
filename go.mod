@@ -85,3 +85,7 @@ require (
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 	sigs.k8s.io/yaml v1.6.0 // indirect
 )
+
+replace github.com/chenzhuoyu/iasm v0.9.0 => github.com/cloudwego/iasm v0.2.0
+replace github.com/chenzhuoyu/iasm v0.9.1 => github.com/cloudwego/iasm v0.2.0
+

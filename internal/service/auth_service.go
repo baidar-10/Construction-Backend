@@ -4,6 +4,7 @@ import (
 	"construction-backend/internal/models"
 	"construction-backend/internal/repository"
 	"errors"
+	"strings"
 	"math/rand"
 	"time"
 
@@ -128,6 +129,24 @@ func (s *AuthService) Register(req *models.RegisterRequest) (*models.User, error
 					Skill:    skill,
 				}
 				if err := tx.Create(workerSkill).Error; err != nil {
+					tx.Rollback()
+					return nil, err
+				}
+			}
+		}
+
+		// Add team members if provided
+		if len(req.TeamMembers) > 0 {
+			for _, member := range req.TeamMembers {
+				if strings.TrimSpace(member.Name) == "" || len(member.Skills) == 0 {
+					continue
+				}
+				teamMember := &models.TeamMember{
+					WorkerID:      worker.ID,
+					Name:          member.Name,
+					Specialization: strings.Join(member.Skills, ", "),
+				}
+				if err := tx.Create(teamMember).Error; err != nil {
 					tx.Rollback()
 					return nil, err
 				}

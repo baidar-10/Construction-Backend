@@ -37,6 +37,7 @@ type Worker struct {
 	TotalReviews       int         `json:"totalReviews" gorm:"default:0"`
 	TotalJobs          int         `json:"totalJobs" gorm:"default:0"`
 	Skills             []string    `json:"skills" gorm:"-"`
+	TeamMembers        []TeamMember `json:"teamMembers,omitempty" gorm:"foreignKey:WorkerID"`
 	Portfolio          []Portfolio `json:"portfolio,omitempty" gorm:"foreignKey:WorkerID"`
 	CreatedAt          time.Time   `json:"createdAt"`
 	UpdatedAt          time.Time   `json:"updatedAt"`
@@ -47,6 +48,14 @@ type WorkerSkill struct {
 	WorkerID  uuid.UUID `json:"workerId" gorm:"type:uuid;not null"`
 	Skill     string    `json:"skill" gorm:"not null"`
 	CreatedAt time.Time `json:"createdAt"`
+}
+
+type TeamMember struct {
+	ID            uuid.UUID `json:"id" gorm:"type:uuid;primary_key;default:uuid_generate_v4()"`
+	WorkerID      uuid.UUID `json:"workerId" gorm:"type:uuid;not null"`
+	Name          string    `json:"name" gorm:"not null"`
+	Specialization string   `json:"specialization" gorm:"not null"`
+	CreatedAt     time.Time `json:"createdAt"`
 }
 
 type Portfolio struct {
@@ -169,12 +178,18 @@ type RegisterRequest struct {
 	Bio             string   `json:"bio,omitempty"`
 	Location        string   `json:"location,omitempty"`
 	Skills          []string `json:"skills,omitempty"`
+	TeamMembers     []TeamMemberRequest `json:"teamMembers,omitempty"`
 
 	// Customer-specific fields
 	Address    string `json:"address,omitempty"`
 	City       string `json:"city,omitempty"`
 	State      string `json:"state,omitempty"`
 	PostalCode string `json:"postalCode,omitempty"`
+}
+
+type TeamMemberRequest struct {
+	Name   string   `json:"name"`
+	Skills []string `json:"skills"`
 }
 
 type LoginRequest struct {
