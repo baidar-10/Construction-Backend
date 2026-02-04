@@ -78,7 +78,19 @@ func (r *WorkerRepository) FindByID(id uuid.UUID) (*models.Worker, error) {
 func (r *WorkerRepository) FindByUserID(userID uuid.UUID) (*models.Worker, error) {
 	var worker models.Worker
 	err := r.db.Preload("User").Preload("TeamMembers").Where("user_id = ?", userID).First(&worker).Error
-	return &worker, err
+	if err != nil {
+		return &worker, err
+	}
+
+	// Load skills
+	var skills []models.WorkerSkill
+	r.db.Where("worker_id = ?", worker.ID).Find(&skills)
+	worker.Skills = make([]string, len(skills))
+	for i, skill := range skills {
+		worker.Skills[i] = skill.Skill
+	}
+
+	return &worker, nil
 }
 
 func (r *WorkerRepository) Update(worker *models.Worker) error {
