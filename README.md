@@ -5,3 +5,4 @@ podman machine ssh -- 'sudo sh -c "printf \"\\n[[registry]]\\nlocation = \\\"doc
 podman machine stop
 podman machine start
 1
+2
