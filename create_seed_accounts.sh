@@ -111,12 +111,15 @@ END \$\$;
 
 if command -v psql >/dev/null 2>&1; then
   PGPASSWORD=$DB_PASSWORD psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" -c "$SQL"
-else
-  if ! command -v podman >/dev/null 2>&1; then
-    echo "❌ psql not found and podman not available"
-    exit 1
-  fi
+elif command -v docker-compose >/dev/null 2>&1; then
+  docker-compose exec -T postgres env PGPASSWORD="$DB_PASSWORD" psql -U "$DB_USER" -d "$DB_NAME" -c "$SQL"
+elif command -v docker >/dev/null 2>&1; then
+  docker exec -i "$DB_CONTAINER" psql -U "$DB_USER" -d "$DB_NAME" -c "$SQL"
+elif command -v podman >/dev/null 2>&1; then
   podman exec -i "$DB_CONTAINER" psql -U "$DB_USER" -d "$DB_NAME" -c "$SQL"
+else
+  echo "❌ psql not found and no container runtime available"
+  exit 1
 fi
 
 if [ $? -eq 0 ]; then
