@@ -17,6 +17,7 @@ type User struct {
 	AvatarURL        string    `json:"avatarUrl"`
 	IsActive         bool      `json:"isActive" gorm:"default:true"`
 	IsVerified       bool      `json:"isVerified" gorm:"default:false"`
+	LastLoginAt      *time.Time `json:"lastLoginAt" gorm:"column:last_login_at"`
 	VerificationCode string    `json:"-" gorm:"size:10"`
 	CodeExpiresAt    time.Time `json:"-"`
 	CreatedAt        time.Time `json:"createdAt"`
@@ -29,6 +30,8 @@ type Worker struct {
 	User               User        `json:"user" gorm:"foreignKey:UserID"`
 	Specialty          string      `json:"specialty" gorm:"not null"`
 	HourlyRate         float64     `json:"hourlyRate"`
+	PaymentType       string      `json:"paymentType" gorm:"column:payment_type"`
+	Currency          string      `json:"currency" gorm:"column:currency"`
 	ExperienceYears    int         `json:"experienceYears"`
 	Bio                string      `json:"bio"`
 	Location           string      `json:"location"`
@@ -174,6 +177,8 @@ type RegisterRequest struct {
 	// Worker-specific fields
 	Specialty       string   `json:"specialty,omitempty"`
 	HourlyRate      float64  `json:"hourlyRate,omitempty"`
+	PaymentType     string   `json:"paymentType,omitempty"`
+	Currency        string   `json:"currency,omitempty"`
 	ExperienceYears int      `json:"experienceYears,omitempty"`
 	Bio             string   `json:"bio,omitempty"`
 	Location        string   `json:"location,omitempty"`

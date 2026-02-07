@@ -13,7 +13,7 @@ DB_USER="postgres"
 DB_PASSWORD="postgres123"
 
 # Admin credentials
-ADMIN_EMAIL="admin@stroyhub.com"
+ADMIN_EMAIL="admin@stroymaster.com"
 ADMIN_PASSWORD="admin123"
 ADMIN_NAME="System Administrator"
 ADMIN_PHONE="+77001234567"

@@ -1,4 +1,4 @@
-# 👑 Админ-панель StroyHub
+# 👑 Админ-панель Строймастер
 
 ## 📋 Обзор
 
@@ -34,7 +34,7 @@
 
 ### Учетные данные админа по умолчанию:
 ```
-Email: admin@stroyhub.com
+Email: admin@stroymaster.kz
 Password: admin123
 ```
 
@@ -57,7 +57,7 @@ Password: admin123
 curl -X POST http://localhost:8080/api/auth/login \
   -H "Content-Type: application/json" \
   -d '{
-    "email": "admin@stroyhub.com",
+    "email": "admin@stroymaster.kz",
     "password": "admin123"
   }'
 ```
@@ -171,7 +171,7 @@ docker exec -i construction_db psql -U admin -d construction_db << 'EOF'
 INSERT INTO users (id, email, password_hash, first_name, last_name, phone, user_type, is_active, created_at, updated_at)
 VALUES (
     gen_random_uuid(),
-    'neweadmin@stroyhub.com',
+    'neweadmin@stroymaster.com',
     '$2a$10$vI8aWBnW3fID.ZQ4/zo1G.q1lRps.9cGLcZEiGDMVr5yUP1KUOYTa',
     'New',
     'Admin',
@@ -221,7 +221,7 @@ EOF
 ## 🐛 Troubleshooting
 
 ### Не могу войти в админку
-1. Проверьте что пользователь существует: `docker exec construction_db psql -U admin -d construction_db -c "SELECT * FROM users WHERE email = 'admin@stroyhub.com';"`
+1. Проверьте что пользователь существует: `docker exec construction_db psql -U admin -d construction_db -c "SELECT * FROM users WHERE email = 'admin@stroymaster.kz';"`
 2. Убедитесь что user_type = 'admin'
 3. Проверьте что is_active = true
 
