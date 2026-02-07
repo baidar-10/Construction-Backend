@@ -76,7 +76,7 @@ run_psql() {
     fi
 
     if command -v docker-compose >/dev/null 2>&1; then
-        docker-compose exec -T postgres psql -U "$DB_USER" -d "$DB_NAME" -c "$SQL"
+        docker-compose exec -T postgres env PGPASSWORD="$DB_PASSWORD" psql -U "$DB_USER" -d "$DB_NAME" -c "$SQL"
         return $?
     fi
 
@@ -101,7 +101,7 @@ if [ $? -eq 0 ]; then
     echo ""
     echo "📝 Admin credentials:"
     echo "   Email: $ADMIN_EMAIL"
-    echo "   Password is set
+    echo "   Password is set"
     echo ""
     echo "🔗 Login at: http://$DB_HOST:5173/login"
     echo "🔗 Admin panel: http://$DB_HOST:5173/admin"
