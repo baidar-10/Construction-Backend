@@ -57,9 +57,20 @@ jobs:
           username: ${{ secrets.SERVER_USERNAME }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           port: ${{ secrets.SERVER_PORT || 22 }}
-          source: "docker-compose.yml"
+          source: "prod-docker-compose.yml"
           target: "~/buildconnect/backend/"
           overwrite: true
+      
+      - name: Rename docker-compose file on server
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USERNAME }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          port: ${{ secrets.SERVER_PORT || 22 }}
+          script: |
+            cd ~/buildconnect/backend || exit 1
+            mv prod-docker-compose.yml docker-compose.yml
 
       - name: Deploy to Server
         uses: appleboy/ssh-action@v1.0.0
