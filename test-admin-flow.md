@@ -7,7 +7,7 @@ Navigate to: **http://localhost:80/login**
 
 ### Step 2: Login with Admin Credentials
 ```
-Email:    admin@stroyhub.com
+Email:    admin@stroymaster.com
 Password: admin123
 ```
 
@@ -59,7 +59,7 @@ You can also go directly to: **http://localhost:80/admin**
 
 ### "I don't see the Admin link"
 ✅ **Solution:** Make sure you're logged in with admin credentials
-- Email: `admin@stroyhub.com`
+- Email: `admin@stroymaster.com`
 - Password: `admin123`
 
 ### "I get redirected or see errors"

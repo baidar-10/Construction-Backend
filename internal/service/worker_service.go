@@ -88,6 +88,12 @@ func (s *WorkerService) UpdateWorker(id uuid.UUID, updates map[string]interface{
 	if hourlyRate, ok := updates["hourlyRate"].(float64); ok {
 		worker.HourlyRate = hourlyRate
 	}
+	if paymentType, ok := updates["paymentType"].(string); ok {
+		worker.PaymentType = paymentType
+	}
+	if currency, ok := updates["currency"].(string); ok {
+		worker.Currency = currency
+	}
 	if experienceYears, ok := updates["experienceYears"].(float64); ok {
 		worker.ExperienceYears = int(experienceYears)
 	}

@@ -107,6 +107,8 @@ func (s *AuthService) Register(req *models.RegisterRequest) (*models.User, error
 			UserID:             user.ID,
 			Specialty:          req.Specialty,
 			HourlyRate:         req.HourlyRate,
+			PaymentType:       req.PaymentType,
+			Currency:          req.Currency,
 			ExperienceYears:    req.ExperienceYears,
 			Bio:                req.Bio,
 			Location:           req.Location,
@@ -178,11 +180,20 @@ func (s *AuthService) Register(req *models.RegisterRequest) (*models.User, error
 func (s *AuthService) Login(email, password string) (string, *models.User, error) {
 	user, err := s.userRepo.FindByEmail(email)
 	if err != nil {
-		return "", nil, errors.New("invalid credentials")
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return "", nil, errors.New("account not found")
+		}
+		return "", nil, err
 	}
 
 	if err := bcrypt.CompareHashAndPassword([]byte(user.PasswordHash), []byte(password)); err != nil {
 		return "", nil, errors.New("invalid credentials")
+	}
+
+	now := time.Now()
+	user.LastLoginAt = &now
+	if err := s.userRepo.Update(user); err != nil {
+		return "", nil, err
 	}
 
 	token, err := s.generateToken(user)

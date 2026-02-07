@@ -99,6 +99,34 @@ func (h *AdminHandler) ToggleUserStatus(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "User status updated successfully"})
 }
 
+// ToggleUserVerification godoc
+// @Summary Verify/Unverify user
+// @Description Toggle user verification status (admin only)
+// @Tags Admin
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Param id path string true "User ID"
+// @Success 200 {object} map[string]interface{} "User verification updated"
+// @Failure 400 {object} map[string]interface{} "Invalid user ID"
+// @Failure 401 {object} map[string]interface{} "Unauthorized"
+// @Failure 403 {object} map[string]interface{} "Forbidden - admin access required"
+// @Router /admin/users/{id}/toggle-verification [put]
+func (h *AdminHandler) ToggleUserVerification(c *gin.Context) {
+	userID, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid user ID"})
+		return
+	}
+
+	if err := h.adminService.ToggleUserVerification(userID); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "User verification updated successfully"})
+}
+
 // DeleteUser godoc
 // @Summary Delete user
 // @Description Permanently delete a user (admin only)

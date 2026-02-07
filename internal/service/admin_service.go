@@ -102,6 +102,16 @@ func (s *AdminService) GetAllUsers(page, limit int, userType string) ([]models.U
 	return users, total, nil
 }
 
+func (s *AdminService) ToggleUserVerification(userID uuid.UUID) error {
+	var user models.User
+	if err := s.db.First(&user, "id = ?", userID).Error; err != nil {
+		return fmt.Errorf("user not found")
+	}
+
+	user.IsVerified = !user.IsVerified
+	return s.db.Save(&user).Error
+}
+
 func (s *AdminService) ToggleUserStatus(userID uuid.UUID) error {
 	var user models.User
 	if err := s.db.First(&user, "id = ?", userID).Error; err != nil {

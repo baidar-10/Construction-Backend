@@ -25,7 +25,7 @@ import (
 // @termsOfService  http://swagger.io/terms/
 
 // @contact.name   API Support
-// @contact.email  support@stroyhub.com
+// @contact.email  support@stroymaster.com
 
 // @license.name  Apache 2.0
 // @license.url   http://www.apache.org/licenses/LICENSE-2.0.html
@@ -195,6 +195,7 @@ func main() {
 			admin.GET("/dashboard", adminHandler.GetDashboardStats)
 			admin.GET("/users", adminHandler.GetAllUsers)
 			admin.PUT("/users/:id/toggle-status", adminHandler.ToggleUserStatus)
+			admin.PUT("/users/:id/toggle-verification", adminHandler.ToggleUserVerification)
 			admin.DELETE("/users/:id", adminHandler.DeleteUser)
 			admin.GET("/bookings", adminHandler.GetAllBookings)
 			admin.PUT("/workers/:id/verify", adminHandler.VerifyWorker)

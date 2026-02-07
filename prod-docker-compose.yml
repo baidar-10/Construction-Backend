@@ -1,0 +1,62 @@
+version: '3.8'
+
+services:
+  backend:
+    image: baidar0/buildconnect-backend:latest
+    container_name: buildconnect-backend
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    environment:
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_USER=${DB_USER:-admin}
+      - DB_PASSWORD=${DB_PASSWORD:-SuperSecurePassword123!@#}
+      - DB_NAME=${DB_NAME:-buildconnect}
+    depends_on:
+      - postgres
+    networks:
+      - buildconnect-network
+
+  frontend:
+    image: baidar0/buildconnect-frontend:latest
+    container_name: buildconnect-frontend
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - /etc/letsencrypt:/etc/letsencrypt:ro
+      - /var/www/certbot:/var/www/certbot
+    depends_on:
+      - backend
+    networks:
+      - buildconnect-network
+
+  postgres:
+    image: postgres:16-alpine
+    container_name: buildconnect-postgres
+    restart: unless-stopped
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_USER=admin
+      - POSTGRES_PASSWORD=${DB_PASSWORD}
+      - POSTGRES_DB=buildconnect
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+      - ./migrations:/app/migrations:ro
+    networks:
+      - buildconnect-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U admin -d buildconnect"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+volumes:
+  postgres-data:
+
+networks:
+  buildconnect-network:
+    driver: bridge

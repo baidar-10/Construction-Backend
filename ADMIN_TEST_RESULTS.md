@@ -12,7 +12,7 @@ All admin functionality has been successfully implemented and tested. The admin 
 ## 🔑 Admin Credentials
 
 ```
-Email:    admin@stroyhub.com
+Email:    admin@stroymaster.com
 Password: admin123
 ```
 
@@ -47,7 +47,7 @@ All services are running properly:
 ```bash
 curl -X POST http://localhost:8080/api/auth/login \
   -H "Content-Type: application/json" \
-  -d '{"email": "admin@stroyhub.com", "password": "admin123"}'
+  -d '{"email": "admin@stroymaster.com", "password": "admin123"}'
 ```
 
 **Result:** Success  
@@ -190,7 +190,7 @@ WHERE user_type = 'admin';
 **Result:**
 ```
 email              | first_name | last_name     | user_type | is_active
-admin@stroyhub.com | System     | Administrator | admin     | true
+admin@stroymaster.com | System     | Administrator | admin     | true
 ```
 
 ### Database Constraints
@@ -236,7 +236,7 @@ docker-compose ps
 ```bash
 curl -s -X POST http://localhost:8080/api/auth/login \
   -H "Content-Type: application/json" \
-  -d '{"email": "admin@stroyhub.com", "password": "admin123"}' \
+  -d '{"email": "admin@stroymaster.com", "password": "admin123"}' \
   | python3 -c "import sys, json; print(json.load(sys.stdin)['token'])"
 ```
 

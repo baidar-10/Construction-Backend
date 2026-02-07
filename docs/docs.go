@@ -12,7 +12,7 @@ const docTemplate = `{
         "termsOfService": "http://swagger.io/terms/",
         "contact": {
             "name": "API Support",
-            "email": "support@stroyhub.com"
+            "email": "support@stroymaster.com"
         },
         "license": {
             "name": "Apache 2.0",
