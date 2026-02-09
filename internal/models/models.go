@@ -297,3 +297,46 @@ type VerifyEmailRequest struct {
 	Email string `json:"email" binding:"required,email"`
 	Code  string `json:"code" binding:"required"`
 }
+
+// VerificationDocument represents a user's identity verification document
+type VerificationDocument struct {
+	ID           uuid.UUID  `json:"id" gorm:"type:uuid;primary_key;default:uuid_generate_v4()"`
+	UserID       uuid.UUID  `json:"userId" gorm:"type:uuid;not null"`
+	User         *User      `json:"user,omitempty" gorm:"foreignKey:UserID"`
+	DocumentType string     `json:"documentType" gorm:"type:varchar(50);not null;default:'id_card'"` // passport, id_card, driver_license
+	FilePath     string     `json:"-" gorm:"type:varchar(500);not null"`
+	FileName     string     `json:"fileName" gorm:"type:varchar(255);not null"`
+	FileSize     int64      `json:"fileSize" gorm:"not null;default:0"`
+	MimeType     string     `json:"mimeType" gorm:"type:varchar(100);not null;default:'image/jpeg'"`
+	Status       string     `json:"status" gorm:"type:varchar(20);not null;default:'pending'"` // pending, approved, rejected
+	AdminID      *uuid.UUID `json:"adminId,omitempty" gorm:"type:uuid"`
+	Admin        *User      `json:"admin,omitempty" gorm:"foreignKey:AdminID"`
+	AdminComment string     `json:"adminComment,omitempty" gorm:"type:text"`
+	ReviewedAt   *time.Time `json:"reviewedAt,omitempty"`
+	CreatedAt    time.Time  `json:"createdAt"`
+	UpdatedAt    time.Time  `json:"updatedAt"`
+}
+
+// TableName overrides the default table name for GORM
+func (VerificationDocument) TableName() string {
+	return "verification_documents"
+}
+
+// UploadVerificationRequest represents the request to upload a verification document
+type UploadVerificationRequest struct {
+	DocumentType string `form:"documentType" binding:"required,oneof=passport id_card driver_license"`
+}
+
+// ReviewVerificationRequest represents admin's review of a verification document
+type ReviewVerificationRequest struct {
+	Status  string `json:"status" binding:"required,oneof=approved rejected"`
+	Comment string `json:"comment"`
+}
+
+// VerificationStatusResponse represents the user's verification status
+type VerificationStatusResponse struct {
+	IsIdentityVerified bool                    `json:"isIdentityVerified"`
+	Documents          []VerificationDocument  `json:"documents"`
+	LatestStatus       string                  `json:"latestStatus,omitempty"`
+}
+
