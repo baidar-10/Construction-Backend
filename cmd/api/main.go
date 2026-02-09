@@ -67,6 +67,7 @@ func main() {
 	applicationService := service.NewApplicationService(applicationRepo, bookingRepo)
 	reviewService := service.NewReviewService(reviewRepo)
 	messageService := service.NewMessageService(messageRepo)
+	promotionService := service.NewPromotionService(db.DB)
 	adminService := service.NewAdminService(db.DB, userRepo, workerRepo, bookingRepo, reviewRepo)
 
 	// Initialize handlers
@@ -77,6 +78,7 @@ func main() {
 	applicationHandler := handlers.NewApplicationHandler(applicationService, workerService)
 	reviewHandler := handlers.NewReviewHandler(reviewService)
 	messageHandler := handlers.NewMessageHandler(messageService)
+	promotionHandler := handlers.NewPromotionHandler(promotionService, workerRepo)
 	adminHandler := handlers.NewAdminHandler(adminService)
 
 	// Setup Gin router
@@ -186,6 +188,22 @@ func main() {
 			messages.PATCH("/booking/:bookingId/read", messageHandler.MarkBookingMessagesAsRead)
 		}
 
+		// Promotion routes
+		promotions := api.Group("/promotions")
+		{
+			promotions.GET("/pricing", promotionHandler.GetPromotionPricing)
+			promotions.GET("/top-workers", promotionHandler.GetTopWorkers)
+			promotions.GET("/workers/:workerId/history", promotionHandler.GetPromotionHistory)
+		}
+
+		// Worker promotion requests (auth required)
+		workerPromotion := api.Group("/workers")
+		{
+			workerPromotion.Use(middleware.AuthMiddleware(cfg.JWTSecret))
+			workerPromotion.POST("/request-promotion", promotionHandler.CreatePromotionRequest)
+			workerPromotion.GET("/my-promotion-requests", promotionHandler.GetWorkerPromotionRequests)
+		}
+
 		// Admin routes
 		admin := api.Group("/admin")
 		{
@@ -199,6 +217,13 @@ func main() {
 			admin.DELETE("/users/:id", adminHandler.DeleteUser)
 			admin.GET("/bookings", adminHandler.GetAllBookings)
 			admin.PUT("/workers/:id/verify", adminHandler.VerifyWorker)
+			// Promotion management
+			admin.POST("/workers/:workerId/promote", promotionHandler.PromoteWorker)
+			admin.POST("/workers/:workerId/cancel-promotion", promotionHandler.CancelPromotion)
+			// Promotion requests management
+			admin.GET("/promotion-requests", promotionHandler.GetPromotionRequests)
+			admin.POST("/promotion-requests/:requestId/approve", promotionHandler.ApprovePromotionRequest)
+			admin.POST("/promotion-requests/:requestId/reject", promotionHandler.RejectPromotionRequest)
 		}
 	}
 

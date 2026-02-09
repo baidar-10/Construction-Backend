@@ -24,6 +24,77 @@ type User struct {
 	UpdatedAt        time.Time `json:"updatedAt"`
 }
 
+
+// ...existing code...
+
+// PromotionPricing represents pricing configuration for worker promotions
+type PromotionPricing struct {
+    ID               uuid.UUID `json:"id" gorm:"type:uuid;primary_key;default:uuid_generate_v4()"`
+    PromotionType    string    `json:"promotionType" gorm:"type:varchar(50);unique;not null"`
+    PricePerDay      float64   `json:"pricePerDay" gorm:"type:decimal(10,2);not null"`
+    MinDurationDays  int       `json:"minDurationDays" gorm:"default:7"`
+    MaxDurationDays  int       `json:"maxDurationDays" gorm:"default:365"`
+    Description      string    `json:"description" gorm:"type:text"`
+    DisplayOrder     int       `json:"displayOrder" gorm:"default:0"`
+    IsActive         bool      `json:"isActive" gorm:"default:true"`
+    CreatedAt        time.Time `json:"createdAt"`
+    UpdatedAt        time.Time `json:"updatedAt"`
+}
+
+// TableName overrides the default table name for GORM
+func (PromotionPricing) TableName() string {
+	return "promotion_pricing"
+}
+
+// PromotionHistory tracks promotion history for workers
+type PromotionHistory struct {
+    ID            uuid.UUID  `json:"id" gorm:"type:uuid;primary_key;default:uuid_generate_v4()"`
+    WorkerID      string     `json:"workerId" gorm:"type:uuid;not null"`
+    PromotionType string     `json:"promotionType" gorm:"type:varchar(50);not null"`
+    PaymentAmount *float64   `json:"paymentAmount,omitempty" gorm:"type:decimal(10,2)"`
+    DurationDays  int        `json:"durationDays" gorm:"not null"`
+    StartedAt     time.Time  `json:"startedAt" gorm:"default:CURRENT_TIMESTAMP"`
+    ExpiresAt     *time.Time `json:"expiresAt,omitempty" gorm:"type:timestamp"`
+    Status        string     `json:"status" gorm:"type:varchar(20);default:'active'"`
+    Notes         string     `json:"notes,omitempty" gorm:"type:text"`
+    CreatedAt     time.Time  `json:"createdAt"`
+    UpdatedAt     time.Time  `json:"updatedAt"`
+}
+
+// TableName overrides the default table name for GORM
+func (PromotionHistory) TableName() string {
+	return "promotion_history"
+}
+
+// PromotionRequest represents a worker's request for promotion
+type PromotionRequest struct {
+	ID            uuid.UUID  `json:"id" gorm:"type:uuid;primary_key;default:uuid_generate_v4()"`
+	WorkerID      uuid.UUID  `json:"workerId" gorm:"type:uuid;not null"`
+	Worker        *Worker    `json:"worker,omitempty" gorm:"foreignKey:WorkerID"`
+	PromotionType string     `json:"promotionType" gorm:"type:varchar(50);not null"`
+	DurationDays  int        `json:"durationDays" gorm:"not null"`
+	Message       string     `json:"message,omitempty" gorm:"type:text"`
+	Status        string     `json:"status" gorm:"type:varchar(20);default:'pending'"` // pending, approved, rejected
+	AdminNotes    string     `json:"adminNotes,omitempty" gorm:"type:text"`
+	ReviewedBy    *uuid.UUID `json:"reviewedBy,omitempty" gorm:"type:uuid"`
+	ReviewedAt    *time.Time `json:"reviewedAt,omitempty" gorm:"type:timestamp"`
+	CreatedAt     time.Time  `json:"createdAt"`
+	UpdatedAt     time.Time  `json:"updatedAt"`
+}
+
+// TableName overrides the default table name for GORM
+func (PromotionRequest) TableName() string {
+	return "promotion_requests"
+}
+
+// PromoteWorkerRequest represents the request to promote a worker
+type PromoteWorkerRequest struct {
+    PromotionType string `json:"promotionType" binding:"required"`
+    DurationDays  int    `json:"durationDays" binding:"required,min=7,max=365"`
+}
+
+// ...existing code...
+
 type Worker struct {
 	ID                 uuid.UUID   `json:"id" gorm:"type:uuid;primary_key;default:uuid_generate_v4()"`
 	UserID             uuid.UUID   `json:"userId" gorm:"type:uuid;unique;not null"`
@@ -42,6 +113,9 @@ type Worker struct {
 	Skills             []string    `json:"skills" gorm:"-"`
 	TeamMembers        []TeamMember `json:"teamMembers,omitempty" gorm:"foreignKey:WorkerID"`
 	Portfolio          []Portfolio `json:"portfolio,omitempty" gorm:"foreignKey:WorkerID"`
+	IsPromoted         bool        `json:"isPromoted" gorm:"column:is_promoted;default:false"`
+	PromotionType      string      `json:"promotionType" gorm:"column:promotion_type;default:'none'"`
+	PromotionExpiresAt *time.Time  `json:"promotionExpiresAt,omitempty" gorm:"column:promotion_expires_at"`
 	CreatedAt          time.Time   `json:"createdAt"`
 	UpdatedAt          time.Time   `json:"updatedAt"`
 }
