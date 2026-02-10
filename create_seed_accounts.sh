@@ -39,7 +39,7 @@ BEGIN
 
   -- Admin user
   INSERT INTO users (id, email, password_hash, first_name, last_name, phone, user_type, is_active, is_verified, created_at, updated_at)
-  VALUES (gen_random_uuid(), '$ADMIN_EMAIL', crypt('$DEFAULT_PASSWORD', gen_salt('bf')), 'Admin', 'User', '+77000000001', 'admin', true, true, NOW(), NOW())
+  VALUES (gen_random_uuid(), '$ADMIN_EMAIL', crypt('$DEFAULT_PASSWORD', gen_salt('bf')), 'Админ', 'Пользователь', '+77000000001', 'admin', true, true, NOW(), NOW())
   ON CONFLICT (email) DO UPDATE SET
     password_hash = crypt('$DEFAULT_PASSWORD', gen_salt('bf')),
     first_name = EXCLUDED.first_name,
@@ -81,7 +81,7 @@ BEGIN
 
   -- Worker profile
   INSERT INTO workers (id, user_id, specialty, hourly_rate, experience_years, bio, location, availability_status, created_at, updated_at)
-  VALUES (gen_random_uuid(), worker_user_id, 'Roofing Works', 1200, 5, 'Тәжірибелі шатыр жөндеу маманы', 'Astana', 'available', NOW(), NOW())
+  VALUES (gen_random_uuid(), worker_user_id, 'Кровельные работы', 1200, 5, 'Тәжірибелі шатыр жөндеу маманы', 'Астана', 'available', NOW(), NOW())
   ON CONFLICT (user_id) DO UPDATE SET
     specialty = EXCLUDED.specialty,
     hourly_rate = EXCLUDED.hourly_rate,
@@ -94,7 +94,7 @@ BEGIN
 
   -- Worker skills
   INSERT INTO worker_skills (id, worker_id, skill, created_at)
-  VALUES (gen_random_uuid(), worker_profile_id, 'Roofing Works', NOW())
+  VALUES (gen_random_uuid(), worker_profile_id, 'Кровельные работы', NOW())
   ON CONFLICT (worker_id, skill) DO NOTHING;
 
   -- Customer profile

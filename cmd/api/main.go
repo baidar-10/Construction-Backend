@@ -256,7 +256,7 @@ func main() {
 			// Verification management
 			if verificationHandler != nil {
 				admin.GET("/verifications", verificationHandler.GetAllVerifications)
-				admin.GET("/verifications/:id/url", verificationHandler.GetDocumentURL)
+				admin.GET("/verifications/:id/download", verificationHandler.DownloadDocument)
 				admin.POST("/verifications/:id/approve", verificationHandler.ApproveVerification)
 				admin.POST("/verifications/:id/reject", verificationHandler.RejectVerification)
 			}

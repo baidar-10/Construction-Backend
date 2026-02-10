@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"io"
 	"net/http"
 	"strconv"
 
@@ -186,30 +187,39 @@ func (h *VerificationHandler) GetAllVerifications(c *gin.Context) {
 	})
 }
 
-// GetDocumentURL generates a presigned URL for viewing a document (admin only)
-// @Summary Get document URL (Admin)
-// @Description Generate a presigned URL to view a verification document
+// DownloadDocument downloads a verification document (admin only)
+// @Summary Download verification document (Admin)
+// @Description Download a verification document file
 // @Tags admin
-// @Produce json
+// @Produce octet-stream
 // @Param id path string true "Document ID"
-// @Success 200 {object} map[string]string
+// @Success 200 {file} octet-stream
 // @Failure 400 {object} map[string]string
 // @Failure 401 {object} map[string]string
-// @Router /api/admin/verifications/{id}/url [get]
-func (h *VerificationHandler) GetDocumentURL(c *gin.Context) {
+// @Router /api/admin/verifications/{id}/download [get]
+func (h *VerificationHandler) DownloadDocument(c *gin.Context) {
 	docID, err := uuid.Parse(c.Param("id"))
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid document ID"})
 		return
 	}
 
-	url, err := h.service.GetDocumentURL(c.Request.Context(), docID)
+	file, fileName, err := h.service.DownloadDocument(c.Request.Context(), docID)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
+	defer file.Close()
 
-	c.JSON(http.StatusOK, gin.H{"url": url})
+	// Set response headers for file download
+	c.Header("Content-Disposition", "attachment; filename="+fileName)
+	c.Header("Content-Type", "application/octet-stream")
+
+	// Stream file to client
+	if _, err := io.Copy(c.Writer, file); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to download file"})
+		return
+	}
 }
 
 // ApproveVerification approves a verification document (admin only)
@@ -225,7 +235,7 @@ func (h *VerificationHandler) GetDocumentURL(c *gin.Context) {
 // @Failure 401 {object} map[string]string
 // @Router /api/admin/verifications/{id}/approve [post]
 func (h *VerificationHandler) ApproveVerification(c *gin.Context) {
-	adminID, exists := c.Get("userID")
+	adminID, exists := c.Get("userId")
 	if !exists {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
 		return
@@ -262,7 +272,7 @@ func (h *VerificationHandler) ApproveVerification(c *gin.Context) {
 // @Failure 401 {object} map[string]string
 // @Router /api/admin/verifications/{id}/reject [post]
 func (h *VerificationHandler) RejectVerification(c *gin.Context) {
-	adminID, exists := c.Get("userID")
+	adminID, exists := c.Get("userId")
 	if !exists {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
 		return

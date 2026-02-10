@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"fmt"
+	"io"
 	"mime/multipart"
 	"path/filepath"
 	"strings"
@@ -126,19 +127,19 @@ func (s *VerificationService) GetDocumentByID(id uuid.UUID) (*models.Verificatio
 	return s.repo.GetByID(id)
 }
 
-// GetDocumentURL generates a presigned URL for viewing a document
-func (s *VerificationService) GetDocumentURL(ctx context.Context, id uuid.UUID) (string, error) {
+// DownloadDocument retrieves a document file for download
+func (s *VerificationService) DownloadDocument(ctx context.Context, id uuid.UUID) (io.ReadCloser, string, error) {
 	doc, err := s.repo.GetByID(id)
 	if err != nil {
-		return "", fmt.Errorf("document not found: %w", err)
+		return nil, "", fmt.Errorf("document not found: %w", err)
 	}
 
-	url, err := s.minio.GetFileURL(ctx, doc.FilePath)
+	file, err := s.minio.GetFile(ctx, doc.FilePath)
 	if err != nil {
-		return "", fmt.Errorf("failed to generate URL: %w", err)
+		return nil, "", fmt.Errorf("failed to get file: %w", err)
 	}
 
-	return url, nil
+	return file, doc.FileName, nil
 }
 
 // ApproveDocument approves a verification document

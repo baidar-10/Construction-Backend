@@ -18,11 +18,12 @@ type Config struct {
 	Port           string
 	AllowedOrigins []string
 	// MinIO
-	MinioEndpoint  string
-	MinioAccessKey string
-	MinioSecretKey string
-	MinioUseSSL    bool
-	MinioBucket    string
+	MinioEndpoint       string
+	MinioPublicEndpoint string
+	MinioAccessKey      string
+	MinioSecretKey      string
+	MinioUseSSL         bool
+	MinioBucket         string
 }
 
 func LoadConfig() *Config {
@@ -43,11 +44,12 @@ func LoadConfig() *Config {
 		Port:           getEnv("PORT", "8080"),
 		AllowedOrigins: strings.Split(allowed, ","),
 		// MinIO
-		MinioEndpoint:  getEnv("MINIO_ENDPOINT", "localhost:9000"),
-		MinioAccessKey: getEnv("MINIO_ACCESS_KEY", "minioadmin"),
-		MinioSecretKey: getEnv("MINIO_SECRET_KEY", "minioadmin123"),
-		MinioUseSSL:    getEnv("MINIO_USE_SSL", "false") == "true",
-		MinioBucket:    getEnv("MINIO_BUCKET", "verification-documents"),
+		MinioEndpoint:       getEnv("MINIO_ENDPOINT", "localhost:9000"),
+		MinioPublicEndpoint: getEnv("MINIO_PUBLIC_ENDPOINT", "http://localhost:9000"),
+		MinioAccessKey:      getEnv("MINIO_ACCESS_KEY", "minioadmin"),
+		MinioSecretKey:      getEnv("MINIO_SECRET_KEY", "minioadmin123"),
+		MinioUseSSL:         getEnv("MINIO_USE_SSL", "false") == "true",
+		MinioBucket:         getEnv("MINIO_BUCKET", "verification-documents"),
 	}
 }
 

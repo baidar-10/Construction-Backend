@@ -7,21 +7,22 @@ import (
 )
 
 type User struct {
-	ID               uuid.UUID `json:"id" gorm:"type:uuid;primary_key;default:uuid_generate_v4()"`
-	Email            string    `json:"email" gorm:"unique;not null"`
-	PasswordHash     string    `json:"-" gorm:"not null"`
-	FirstName        string    `json:"firstName" gorm:"not null"`
-	LastName         string    `json:"lastName" gorm:"not null"`
-	Phone            string    `json:"phone"`
-	UserType         string    `json:"userType" gorm:"not null"` // 'customer' or 'worker'
-	AvatarURL        string    `json:"avatarUrl"`
-	IsActive         bool      `json:"isActive" gorm:"default:true"`
-	IsVerified       bool      `json:"isVerified" gorm:"default:false"`
-	LastLoginAt      *time.Time `json:"lastLoginAt" gorm:"column:last_login_at"`
-	VerificationCode string    `json:"-" gorm:"size:10"`
-	CodeExpiresAt    time.Time `json:"-"`
-	CreatedAt        time.Time `json:"createdAt"`
-	UpdatedAt        time.Time `json:"updatedAt"`
+	ID                   uuid.UUID `json:"id" gorm:"type:uuid;primary_key;default:uuid_generate_v4()"`
+	Email                string    `json:"email" gorm:"unique;not null"`
+	PasswordHash         string    `json:"-" gorm:"not null"`
+	FirstName            string    `json:"firstName" gorm:"not null"`
+	LastName             string    `json:"lastName" gorm:"not null"`
+	Phone                string    `json:"phone"`
+	UserType             string    `json:"userType" gorm:"not null"` // 'customer' or 'worker'
+	AvatarURL            string    `json:"avatarUrl"`
+	IsActive             bool      `json:"isActive" gorm:"default:true"`
+	IsVerified           bool      `json:"isVerified" gorm:"default:false"`
+	IsIdentityVerified   bool      `json:"isIdentityVerified" gorm:"default:false;column:is_identity_verified"`
+	LastLoginAt          *time.Time `json:"lastLoginAt" gorm:"column:last_login_at"`
+	VerificationCode     string    `json:"-" gorm:"size:10"`
+	CodeExpiresAt        time.Time `json:"-"`
+	CreatedAt            time.Time `json:"createdAt"`
+	UpdatedAt            time.Time `json:"updatedAt"`
 }
 
 
