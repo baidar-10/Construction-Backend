@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"bytes"
 	"io"
 	"net/http"
 	"strconv"
@@ -204,21 +205,34 @@ func (h *VerificationHandler) DownloadDocument(c *gin.Context) {
 		return
 	}
 
-	file, fileName, err := h.service.DownloadDocument(c.Request.Context(), docID)
+	file, fileName, _, err := h.service.DownloadDocument(c.Request.Context(), docID)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 	defer file.Close()
 
-	// Set response headers for file download
-	c.Header("Content-Disposition", "attachment; filename="+fileName)
-	c.Header("Content-Type", "application/octet-stream")
+	// Read first 512 bytes to detect MIME type
+	buffer := make([]byte, 512)
+	n, _ := file.Read(buffer)
 
-	// Stream file to client
-	if _, err := io.Copy(c.Writer, file); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to download file"})
-		return
+	// Detect MIME type from file content
+	mimeType := http.DetectContentType(buffer[:n])
+
+	// Create combined reader: buffer + remaining file
+	combinedReader := io.MultiReader(
+		bytes.NewReader(buffer[:n]),
+		file,
+	)
+
+	// Set response headers
+	c.Header("Content-Disposition", "attachment; filename="+fileName)
+	c.Header("Content-Type", mimeType)
+
+	// Stream to client
+	if _, err := io.Copy(c.Writer, combinedReader); err != nil {
+		// Headers already sent, can't write JSON
+		_ = err
 	}
 }
 
@@ -302,4 +316,49 @@ func (h *VerificationHandler) RejectVerification(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"message": "Verification rejected"})
+}
+
+// RequestRework requests rework of a verification document (admin only)
+// @Summary Request document rework (Admin)
+// @Description Send document back for rework with admin comment
+// @Tags admin
+// @Accept json
+// @Produce json
+// @Param id path string true "Document ID"
+// @Param body body models.ReviewVerificationRequest true "Rework request with comment"
+// @Success 200 {object} map[string]string
+// @Failure 400 {object} map[string]string
+// @Failure 401 {object} map[string]string
+// @Router /api/admin/verifications/{id}/rework [post]
+func (h *VerificationHandler) RequestRework(c *gin.Context) {
+	adminID, exists := c.Get("userId")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
+		return
+	}
+
+	docID, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid document ID"})
+		return
+	}
+
+	var req models.ReviewVerificationRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Comment is required for rework request"})
+		return
+	}
+
+	if req.Comment == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Please provide feedback for rework"})
+		return
+	}
+
+	err = h.service.RequestRework(c.Request.Context(), docID, adminID.(uuid.UUID), req.Comment)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Rework request sent to user"})
 }

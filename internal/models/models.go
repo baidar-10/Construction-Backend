@@ -330,7 +330,7 @@ type UploadVerificationRequest struct {
 
 // ReviewVerificationRequest represents admin's review of a verification document
 type ReviewVerificationRequest struct {
-	Status  string `json:"status" binding:"required,oneof=approved rejected"`
+	Status  string `json:"status" binding:"required,oneof=approved rejected rework_required"`
 	Comment string `json:"comment"`
 }
 

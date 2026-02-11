@@ -128,18 +128,18 @@ func (s *VerificationService) GetDocumentByID(id uuid.UUID) (*models.Verificatio
 }
 
 // DownloadDocument retrieves a document file for download
-func (s *VerificationService) DownloadDocument(ctx context.Context, id uuid.UUID) (io.ReadCloser, string, error) {
+func (s *VerificationService) DownloadDocument(ctx context.Context, id uuid.UUID) (io.ReadCloser, string, string, error) {
 	doc, err := s.repo.GetByID(id)
 	if err != nil {
-		return nil, "", fmt.Errorf("document not found: %w", err)
+		return nil, "", "", fmt.Errorf("document not found: %w", err)
 	}
 
 	file, err := s.minio.GetFile(ctx, doc.FilePath)
 	if err != nil {
-		return nil, "", fmt.Errorf("failed to get file: %w", err)
+		return nil, "", "", fmt.Errorf("failed to get file: %w", err)
 	}
 
-	return file, doc.FileName, nil
+	return file, doc.FileName, doc.MimeType, nil
 }
 
 // ApproveDocument approves a verification document
@@ -184,6 +184,31 @@ func (s *VerificationService) RejectDocument(ctx context.Context, docID, adminID
 
 	now := time.Now()
 	doc.Status = "rejected"
+	doc.AdminID = &adminID
+	doc.AdminComment = comment
+	doc.ReviewedAt = &now
+
+	if err := s.repo.Update(doc); err != nil {
+		return fmt.Errorf("failed to update document: %w", err)
+	}
+
+	return nil
+}
+
+// RequestRework sends document back for rework
+func (s *VerificationService) RequestRework(ctx context.Context, docID, adminID uuid.UUID, comment string) error {
+	doc, err := s.repo.GetByID(docID)
+	if err != nil {
+		return fmt.Errorf("document not found: %w", err)
+	}
+
+	// Allow rework request for pending or approved documents
+	if doc.Status != "pending" && doc.Status != "approved" {
+		return fmt.Errorf("only pending or approved documents can be sent for rework")
+	}
+
+	now := time.Now()
+	doc.Status = "rework_required"
 	doc.AdminID = &adminID
 	doc.AdminComment = comment
 	doc.ReviewedAt = &now

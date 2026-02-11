@@ -259,6 +259,7 @@ func main() {
 				admin.GET("/verifications/:id/download", verificationHandler.DownloadDocument)
 				admin.POST("/verifications/:id/approve", verificationHandler.ApproveVerification)
 				admin.POST("/verifications/:id/reject", verificationHandler.RejectVerification)
+				admin.POST("/verifications/:id/rework", verificationHandler.RequestRework)
 			}
 		}
 	}
