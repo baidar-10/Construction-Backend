@@ -38,11 +38,6 @@ services:
     networks:
       - buildconnect-network
     command: server /data --console-address ":9001"
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
-      interval: 30s
-      timeout: 20s
-      retries: 3
 
   backend:
     image: baidar0/buildconnect-backend:latest
@@ -67,7 +62,8 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
-      minio: {}
+      minio:
+        condition: service_started
     networks:
       - buildconnect-network
     volumes:
