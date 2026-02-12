@@ -74,7 +74,7 @@ func main() {
 	customerService := service.NewCustomerService(customerRepo)
 	bookingService := service.NewBookingService(bookingRepo, customerRepo)
 	applicationService := service.NewApplicationService(applicationRepo, bookingRepo)
-	reviewService := service.NewReviewService(reviewRepo)
+	reviewService := service.NewReviewService(reviewRepo, workerRepo)
 	messageService := service.NewMessageService(messageRepo)
 	promotionService := service.NewPromotionService(db.DB)
 	adminService := service.NewAdminService(db.DB, userRepo, workerRepo, bookingRepo, reviewRepo)
@@ -146,6 +146,7 @@ func main() {
 		workers := api.Group("/workers")
 		{
 			workers.GET("", workerHandler.GetAllWorkers)
+			workers.GET("/search", workerHandler.SearchWorkers)
 			workers.GET("/user/:userId", middleware.AuthMiddleware(cfg.JWTSecret), workerHandler.GetWorkerByUserID)
 			workers.GET("/filter", workerHandler.FilterWorkers)
 			// Get worker by ID
@@ -160,6 +161,7 @@ func main() {
 		customers := api.Group("/customers")
 		{
 			customers.GET("/:id", middleware.AuthMiddleware(cfg.JWTSecret), customerHandler.GetCustomerProfile)
+			customers.GET("/user/:userId", middleware.AuthMiddleware(cfg.JWTSecret), customerHandler.GetCustomerByUserID)
 			customers.PUT("/:id", middleware.AuthMiddleware(cfg.JWTSecret), customerHandler.UpdateCustomerProfile)
 			customers.GET("/:id/bookings", middleware.AuthMiddleware(cfg.JWTSecret), customerHandler.GetBookingHistory)
 			customers.GET("/:id/favorites", middleware.AuthMiddleware(cfg.JWTSecret), customerHandler.GetFavoriteWorkers)

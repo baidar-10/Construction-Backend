@@ -1,10 +1,55 @@
 package models
 
 import (
+	"database/sql/driver"
+	"errors"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
 )
+
+// StringArray is a custom type for PostgreSQL text[] arrays
+type StringArray []string
+
+// Scan implements the sql.Scanner interface
+func (a *StringArray) Scan(value interface{}) error {
+	if value == nil {
+		*a = StringArray{}
+		return nil
+	}
+
+	switch v := value.(type) {
+	case []byte:
+		// PostgreSQL array format: {elem1,elem2,elem3}
+		str := string(v)
+		str = strings.Trim(str, "{}")
+		if str == "" {
+			*a = StringArray{}
+			return nil
+		}
+		*a = strings.Split(str, ",")
+		return nil
+	case string:
+		str := strings.Trim(v, "{}")
+		if str == "" {
+			*a = StringArray{}
+			return nil
+		}
+		*a = strings.Split(str, ",")
+		return nil
+	default:
+		return errors.New("incompatible type for StringArray")
+	}
+}
+
+// Value implements the driver.Valuer interface
+func (a StringArray) Value() (driver.Value, error) {
+	if len(a) == 0 {
+		return "{}", nil
+	}
+	return "{" + strings.Join(a, ",") + "}", nil
+}
 
 type User struct {
 	ID                   uuid.UUID `json:"id" gorm:"type:uuid;primary_key;default:uuid_generate_v4()"`
@@ -183,16 +228,17 @@ type Booking struct {
 }
 
 type Review struct {
-	ID         uuid.UUID `json:"id" gorm:"type:uuid;primary_key;default:uuid_generate_v4()"`
-	BookingID  uuid.UUID `json:"bookingId" gorm:"type:uuid;not null"`
-	WorkerID   uuid.UUID `json:"workerId" gorm:"type:uuid;not null"`
-	Worker     Worker    `json:"worker,omitempty" gorm:"foreignKey:WorkerID"`
-	CustomerID uuid.UUID `json:"customerId" gorm:"type:uuid;not null"`
-	Customer   Customer  `json:"customer,omitempty" gorm:"foreignKey:CustomerID"`
-	Rating     int       `json:"rating" gorm:"not null"`
-	Comment    string    `json:"comment"`
-	CreatedAt  time.Time `json:"createdAt"`
-	UpdatedAt  time.Time `json:"updatedAt"`
+	ID         uuid.UUID   `json:"id" gorm:"type:uuid;primary_key;default:uuid_generate_v4()"`
+	BookingID  uuid.UUID   `json:"bookingId" gorm:"type:uuid;not null"`
+	WorkerID   uuid.UUID   `json:"workerId" gorm:"type:uuid;not null"`
+	Worker     Worker      `json:"worker,omitempty" gorm:"foreignKey:WorkerID"`
+	CustomerID uuid.UUID   `json:"customerId" gorm:"type:uuid;not null"`
+	Customer   Customer    `json:"customer,omitempty" gorm:"foreignKey:CustomerID"`
+	Rating     int         `json:"rating" gorm:"not null"`
+	Comment    string      `json:"comment"`
+	MediaURLs  StringArray `json:"mediaUrls" gorm:"type:text[]"`
+	CreatedAt  time.Time   `json:"createdAt"`
+	UpdatedAt  time.Time   `json:"updatedAt"`
 }
 
 type FavoriteWorker struct {

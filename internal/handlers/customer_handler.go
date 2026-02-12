@@ -33,6 +33,22 @@ func (h *CustomerHandler) GetCustomerProfile(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"customer": customer})
 }
 
+func (h *CustomerHandler) GetCustomerByUserID(c *gin.Context) {
+	userID, err := uuid.Parse(c.Param("userId"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid user ID"})
+		return
+	}
+
+	customer, err := h.customerService.GetCustomerByUserID(userID)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Customer not found"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"customer": customer})
+}
+
 func (h *CustomerHandler) UpdateCustomerProfile(c *gin.Context) {
 	id, err := uuid.Parse(c.Param("id"))
 	if err != nil {
