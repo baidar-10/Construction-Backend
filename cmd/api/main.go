@@ -7,6 +7,7 @@ import (
 	"construction-backend/internal/middleware"
 	"construction-backend/internal/repository"
 	"construction-backend/internal/service"
+	"construction-backend/internal/storage"
 	"log"
 	"time"
 
@@ -57,6 +58,14 @@ func main() {
 	applicationRepo := repository.NewApplicationRepository(db.DB)
 	reviewRepo := repository.NewReviewRepository(db)
 	messageRepo := repository.NewMessageRepository(db)
+	verificationRepo := repository.NewVerificationRepository(db.DB)
+
+	// Initialize MinIO client
+	minioClient, err := storage.NewMinioClient(cfg)
+	if err != nil {
+		log.Printf("Warning: Failed to initialize MinIO client: %v", err)
+		log.Println("Verification document upload will not be available")
+	}
 
 	// Initialize services
 	emailService := service.NewEmailService()
@@ -69,6 +78,10 @@ func main() {
 	messageService := service.NewMessageService(messageRepo)
 	promotionService := service.NewPromotionService(db.DB)
 	adminService := service.NewAdminService(db.DB, userRepo, workerRepo, bookingRepo, reviewRepo)
+	var verificationService *service.VerificationService
+	if minioClient != nil {
+		verificationService = service.NewVerificationService(verificationRepo, minioClient)
+	}
 
 	// Initialize handlers
 	authHandler := handlers.NewAuthHandler(authService)
@@ -80,6 +93,10 @@ func main() {
 	messageHandler := handlers.NewMessageHandler(messageService)
 	promotionHandler := handlers.NewPromotionHandler(promotionService, workerRepo)
 	adminHandler := handlers.NewAdminHandler(adminService)
+	var verificationHandler *handlers.VerificationHandler
+	if verificationService != nil {
+		verificationHandler = handlers.NewVerificationHandler(verificationService)
+	}
 
 	// Setup Gin router
 	router := gin.Default()
@@ -188,6 +205,18 @@ func main() {
 			messages.PATCH("/booking/:bookingId/read", messageHandler.MarkBookingMessagesAsRead)
 		}
 
+		// Verification routes (for users to upload documents)
+		if verificationHandler != nil {
+			verification := api.Group("/verification")
+			{
+				verification.Use(middleware.AuthMiddleware(cfg.JWTSecret))
+				verification.POST("/upload", verificationHandler.UploadDocument)
+				verification.GET("/my-documents", verificationHandler.GetMyDocuments)
+				verification.GET("/status", verificationHandler.GetVerificationStatus)
+				verification.DELETE("/:id", verificationHandler.DeleteDocument)
+			}
+		}
+
 		// Promotion routes
 		promotions := api.Group("/promotions")
 		{
@@ -224,6 +253,14 @@ func main() {
 			admin.GET("/promotion-requests", promotionHandler.GetPromotionRequests)
 			admin.POST("/promotion-requests/:requestId/approve", promotionHandler.ApprovePromotionRequest)
 			admin.POST("/promotion-requests/:requestId/reject", promotionHandler.RejectPromotionRequest)
+			// Verification management
+			if verificationHandler != nil {
+				admin.GET("/verifications", verificationHandler.GetAllVerifications)
+				admin.GET("/verifications/:id/download", verificationHandler.DownloadDocument)
+				admin.POST("/verifications/:id/approve", verificationHandler.ApproveVerification)
+				admin.POST("/verifications/:id/reject", verificationHandler.RejectVerification)
+				admin.POST("/verifications/:id/rework", verificationHandler.RequestRework)
+			}
 		}
 	}
 

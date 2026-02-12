@@ -19,13 +19,13 @@ ENV GOPROXY=direct \
 
 # Copy go mod files
 COPY go.mod go.sum ./
-RUN go mod download
+RUN go mod download || go mod tidy
 
 # Copy source code (including docs folder for Swagger)
 COPY . .
 
-# Build the application
-RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o main ./cmd/api
+# Update dependencies and build the application
+RUN go mod tidy && CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o main ./cmd/api
 
 # Final stage
 FROM debian:bookworm-slim
