@@ -44,6 +44,8 @@ services:
     build: .
     image: construction-backend:local
     container_name: construction_backend
+    ports:
+      - "8080:8080"
     environment:
       DB_HOST: postgres
       DB_PORT: 5432
@@ -58,8 +60,6 @@ services:
       MINIO_SECRET_KEY: minioadmin123
       MINIO_USE_SSL: "false"
       MINIO_BUCKET: verification-documents
-    ports:
-      - "8080:8080"
     depends_on:
       postgres:
         condition: service_healthy

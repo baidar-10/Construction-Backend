@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"fmt"
+	"log"
 	"net/http"
 	"path/filepath"
 	"strings"
@@ -60,34 +61,59 @@ func UploadPortfolioItem(c *gin.Context) {
 		return
 	}
 
-	// Handle file upload
-	file, err := c.FormFile("image")
+	// Handle multiple file uploads
+	form, err := c.MultipartForm()
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Image is required"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Failed to parse form"})
 		return
 	}
 
-	// Validate file type
-	ext := strings.ToLower(filepath.Ext(file.Filename))
-	if ext != ".jpg" && ext != ".jpeg" && ext != ".png" && ext != ".webp" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Only JPG, PNG, and WebP images are allowed"})
+	files := form.File["images"]
+	if len(files) == 0 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "At least one image is required"})
 		return
 	}
 
-	// Validate file size (max 5MB)
-	if file.Size > 5*1024*1024 {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Image size must be less than 5MB"})
+	// Validate max 5 images
+	if len(files) > 5 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Maximum 5 images allowed"})
 		return
 	}
 
-	// Generate unique filename
-	filename := fmt.Sprintf("portfolio_%s_%d%s", worker.ID, time.Now().Unix(), ext)
-	filePath := fmt.Sprintf("./uploads/portfolio/%s", filename)
+	var imageURLs []string
+	var primaryImageURL string
 
-	// Save file
-	if err := c.SaveUploadedFile(file, filePath); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to save image"})
-		return
+	for i, file := range files {
+		// Validate file type
+		ext := strings.ToLower(filepath.Ext(file.Filename))
+		if ext != ".jpg" && ext != ".jpeg" && ext != ".png" && ext != ".webp" {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Only JPG, PNG, and WebP images are allowed"})
+			return
+		}
+
+		// Validate file size (max 5MB)
+		if file.Size > 5*1024*1024 {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Each image must be less than 5MB"})
+			return
+		}
+
+		// Generate unique filename
+		filename := fmt.Sprintf("portfolio_%s_%d_%d%s", worker.ID, time.Now().Unix(), i, ext)
+		filePath := fmt.Sprintf("./uploads/portfolio/%s", filename)
+
+		// Save file
+		if err := c.SaveUploadedFile(file, filePath); err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to save image"})
+			return
+		}
+
+		imageURL := fmt.Sprintf("/uploads/portfolio/%s", filename)
+		imageURLs = append(imageURLs, imageURL)
+
+		// First image is the primary image
+		if i == 0 {
+			primaryImageURL = imageURL
+		}
 	}
 
 	// Create portfolio item
@@ -95,7 +121,8 @@ func UploadPortfolioItem(c *gin.Context) {
 		WorkerID:    worker.ID,
 		Title:       title,
 		Description: description,
-		ImageURL:    fmt.Sprintf("/uploads/portfolio/%s", filename),
+		ImageURL:    primaryImageURL,
+		ImageURLs:   imageURLs,
 		Status:      "pending",
 	}
 
@@ -126,6 +153,8 @@ func GetWorkerPortfolio(c *gin.Context) {
 		return
 	}
 
+	log.Printf("[DEBUG] GetWorkerPortfolio called for worker: %s", workerID)
+
 	var portfolio []models.Portfolio
 	query := db.Where("worker_id = ?", workerUUID)
 
@@ -134,14 +163,23 @@ func GetWorkerPortfolio(c *gin.Context) {
 	userID, exists := middleware.GetUserIDFromContext(c)
 	isOwner := false
 	if exists {
+		log.Printf("[DEBUG] User ID from context: %s", userID)
 		var worker models.Worker
 		if err := db.Where("user_id = ? AND id = ?", userID, workerUUID).First(&worker).Error; err == nil {
 			isOwner = true
+			log.Printf("[DEBUG] User is owner of this worker profile")
+		} else {
+			log.Printf("[DEBUG] User is NOT owner. Error: %v", err)
 		}
+	} else {
+		log.Printf("[DEBUG] No user ID in context (not authenticated)")
 	}
 
 	if !isOwner {
+		log.Printf("[DEBUG] Filtering to only show approved items")
 		query = query.Where("status = ?", "approved")
+	} else {
+		log.Printf("[DEBUG] Showing ALL portfolio items (owner view)")
 	}
 
 	if err := query.Order("created_at DESC").Find(&portfolio).Error; err != nil {
@@ -149,6 +187,7 @@ func GetWorkerPortfolio(c *gin.Context) {
 		return
 	}
 
+	log.Printf("[DEBUG] Returning %d portfolio items", len(portfolio))
 	c.JSON(http.StatusOK, portfolio)
 }
 
