@@ -262,7 +262,6 @@ func main() {
 			admin.GET("/promotion-requests", promotionHandler.GetPromotionRequests)
 			admin.POST("/promotion-requests/:requestId/approve", promotionHandler.ApprovePromotionRequest)
 			admin.POST("/promotion-requests/:requestId/reject", promotionHandler.RejectPromotionRequest)
-<<<<<<< HEAD
 			// Verification management
 			if verificationHandler != nil {
 				admin.GET("/verifications", verificationHandler.GetAllVerifications)
@@ -271,12 +270,10 @@ func main() {
 				admin.POST("/verifications/:id/reject", verificationHandler.RejectVerification)
 				admin.POST("/verifications/:id/rework", verificationHandler.RequestRework)
 			}
-=======
 			// Portfolio management
 			admin.GET("/portfolio/pending", handlers.GetPendingPortfolio)
 			admin.PUT("/portfolio/:id/approve", handlers.ApprovePortfolioItem)
 			admin.PUT("/portfolio/:id/reject", handlers.RejectPortfolioItem)
->>>>>>> 16228d6 (Updated)
 		}
 	}
 
