@@ -144,13 +144,16 @@ jobs:
             cd ~/buildconnect/backend
             
             echo "Waiting for backend to start..."
-            sleep 15
-            
-            if /usr/bin/docker-compose ps | grep -q "buildconnect-backend.*Up"; then
-              echo "✅ Backend is running"
-              /usr/bin/docker-compose logs --tail=50 backend
-            else
-              echo "❌ Backend failed to start"
-              /usr/bin/docker-compose logs backend
-              exit 1
-            fi
+            for i in 1 2 3 4 5 6; do
+              if /usr/bin/docker-compose ps | grep -q "buildconnect-backend.*Up"; then
+                echo "✅ Backend is running"
+                /usr/bin/docker-compose logs --tail=50 backend
+                exit 0
+              fi
+              echo "Not up yet, retrying in 10s... ($i/6)"
+              sleep 10
+            done
+
+            echo "❌ Backend failed to start"
+            /usr/bin/docker-compose logs backend
+            exit 1
