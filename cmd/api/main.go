@@ -50,6 +50,9 @@ func main() {
 	}
 	defer db.Close()
 
+	// Set database for portfolio handler
+	handlers.SetDB(db.DB)
+
 	// Initialize repositories
 	userRepo := repository.NewUserRepository(db)
 	workerRepo := repository.NewWorkerRepository(db)
@@ -74,7 +77,7 @@ func main() {
 	customerService := service.NewCustomerService(customerRepo)
 	bookingService := service.NewBookingService(bookingRepo, customerRepo)
 	applicationService := service.NewApplicationService(applicationRepo, bookingRepo)
-	reviewService := service.NewReviewService(reviewRepo)
+	reviewService := service.NewReviewService(reviewRepo, workerRepo)
 	messageService := service.NewMessageService(messageRepo)
 	promotionService := service.NewPromotionService(db.DB)
 	adminService := service.NewAdminService(db.DB, userRepo, workerRepo, bookingRepo, reviewRepo)
@@ -146,6 +149,7 @@ func main() {
 		workers := api.Group("/workers")
 		{
 			workers.GET("", workerHandler.GetAllWorkers)
+			workers.GET("/search", workerHandler.SearchWorkers)
 			workers.GET("/user/:userId", middleware.AuthMiddleware(cfg.JWTSecret), workerHandler.GetWorkerByUserID)
 			workers.GET("/filter", workerHandler.FilterWorkers)
 			// Get worker by ID
@@ -154,12 +158,17 @@ func main() {
 			workers.POST("/:id/portfolio", middleware.AuthMiddleware(cfg.JWTSecret), workerHandler.AddPortfolio)
 			workers.GET("/:id/reviews", reviewHandler.GetWorkerReviews)
 			workers.POST("/:id/reviews", middleware.AuthMiddleware(cfg.JWTSecret), reviewHandler.CreateReview)
+			// New portfolio routes
+			workers.POST("/portfolio", middleware.AuthMiddleware(cfg.JWTSecret), handlers.UploadPortfolioItem)
+			workers.GET("/:id/portfolio", handlers.GetWorkerPortfolio)
+			workers.DELETE("/portfolio/:id", middleware.AuthMiddleware(cfg.JWTSecret), handlers.DeletePortfolioItem)
 		}
 
 		// Customer routes
 		customers := api.Group("/customers")
 		{
 			customers.GET("/:id", middleware.AuthMiddleware(cfg.JWTSecret), customerHandler.GetCustomerProfile)
+			customers.GET("/user/:userId", middleware.AuthMiddleware(cfg.JWTSecret), customerHandler.GetCustomerByUserID)
 			customers.PUT("/:id", middleware.AuthMiddleware(cfg.JWTSecret), customerHandler.UpdateCustomerProfile)
 			customers.GET("/:id/bookings", middleware.AuthMiddleware(cfg.JWTSecret), customerHandler.GetBookingHistory)
 			customers.GET("/:id/favorites", middleware.AuthMiddleware(cfg.JWTSecret), customerHandler.GetFavoriteWorkers)
@@ -261,6 +270,10 @@ func main() {
 				admin.POST("/verifications/:id/reject", verificationHandler.RejectVerification)
 				admin.POST("/verifications/:id/rework", verificationHandler.RequestRework)
 			}
+			// Portfolio management
+			admin.GET("/portfolio/pending", handlers.GetPendingPortfolio)
+			admin.PUT("/portfolio/:id/approve", handlers.ApprovePortfolioItem)
+			admin.PUT("/portfolio/:id/reject", handlers.RejectPortfolioItem)
 		}
 	}
 

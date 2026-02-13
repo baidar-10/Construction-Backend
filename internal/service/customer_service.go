@@ -19,6 +19,10 @@ func (s *CustomerService) GetCustomerProfile(id uuid.UUID) (*models.Customer, er
 	return s.customerRepo.FindByID(id)
 }
 
+func (s *CustomerService) GetCustomerByUserID(userID uuid.UUID) (*models.Customer, error) {
+	return s.customerRepo.FindByUserID(userID)
+}
+
 func (s *CustomerService) UpdateCustomerProfile(id uuid.UUID, updates map[string]interface{}) (*models.Customer, error) {
 	customer, err := s.customerRepo.FindByID(id)
 	if err != nil {
