@@ -182,17 +182,23 @@ type TeamMember struct {
 }
 
 type Portfolio struct {
-	ID          uuid.UUID `json:"id" gorm:"type:uuid;primary_key;default:uuid_generate_v4()"`
-	WorkerID    uuid.UUID `json:"workerId" gorm:"type:uuid;not null"`
-	Title       string    `json:"title"`
-	Description string    `json:"description"`
-	ImageURL    string    `json:"imageUrl" gorm:"not null"`
-	CreatedAt   time.Time `json:"createdAt"`
+	ID              uuid.UUID  `json:"id" gorm:"type:uuid;primary_key;default:uuid_generate_v4()"`
+	WorkerID        uuid.UUID  `json:"workerId" gorm:"type:uuid;not null"`
+	Worker          *Worker    `json:"worker,omitempty" gorm:"foreignKey:WorkerID"`
+	Title           string     `json:"title"`
+	Description     string     `json:"description"`
+	ImageURL        string     `json:"imageUrl" gorm:"not null"`
+	Status          string     `json:"status" gorm:"default:'pending'"` // pending, approved, rejected
+	ApprovedAt      *time.Time `json:"approvedAt,omitempty"`
+	ApprovedBy      *uuid.UUID `json:"approvedBy,omitempty" gorm:"type:uuid"`
+	RejectionReason string     `json:"rejectionReason,omitempty"`
+	CreatedAt       time.Time  `json:"createdAt"`
+	UpdatedAt       time.Time  `json:"updatedAt"`
 }
 
 // TableName overrides the default table name for GORM
 func (Portfolio) TableName() string {
-	return "worker_portfolio"
+	return "portfolio_items"
 }
 
 type Customer struct {

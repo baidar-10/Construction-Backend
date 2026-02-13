@@ -50,6 +50,9 @@ func main() {
 	}
 	defer db.Close()
 
+	// Set database for portfolio handler
+	handlers.SetDB(db.DB)
+
 	// Initialize repositories
 	userRepo := repository.NewUserRepository(db)
 	workerRepo := repository.NewWorkerRepository(db)
@@ -155,6 +158,10 @@ func main() {
 			workers.POST("/:id/portfolio", middleware.AuthMiddleware(cfg.JWTSecret), workerHandler.AddPortfolio)
 			workers.GET("/:id/reviews", reviewHandler.GetWorkerReviews)
 			workers.POST("/:id/reviews", middleware.AuthMiddleware(cfg.JWTSecret), reviewHandler.CreateReview)
+			// New portfolio routes
+			workers.POST("/portfolio", middleware.AuthMiddleware(cfg.JWTSecret), handlers.UploadPortfolioItem)
+			workers.GET("/:id/portfolio", handlers.GetWorkerPortfolio)
+			workers.DELETE("/portfolio/:id", middleware.AuthMiddleware(cfg.JWTSecret), handlers.DeletePortfolioItem)
 		}
 
 		// Customer routes
@@ -255,6 +262,7 @@ func main() {
 			admin.GET("/promotion-requests", promotionHandler.GetPromotionRequests)
 			admin.POST("/promotion-requests/:requestId/approve", promotionHandler.ApprovePromotionRequest)
 			admin.POST("/promotion-requests/:requestId/reject", promotionHandler.RejectPromotionRequest)
+<<<<<<< HEAD
 			// Verification management
 			if verificationHandler != nil {
 				admin.GET("/verifications", verificationHandler.GetAllVerifications)
@@ -263,6 +271,12 @@ func main() {
 				admin.POST("/verifications/:id/reject", verificationHandler.RejectVerification)
 				admin.POST("/verifications/:id/rework", verificationHandler.RequestRework)
 			}
+=======
+			// Portfolio management
+			admin.GET("/portfolio/pending", handlers.GetPendingPortfolio)
+			admin.PUT("/portfolio/:id/approve", handlers.ApprovePortfolioItem)
+			admin.PUT("/portfolio/:id/reject", handlers.RejectPortfolioItem)
+>>>>>>> 16228d6 (Updated)
 		}
 	}
 
