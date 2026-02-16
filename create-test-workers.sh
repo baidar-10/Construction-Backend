@@ -7,6 +7,11 @@ echo "========================================"
 echo "Cleaning up existing test accounts..."
 echo "========================================"
 
+# Delete users created by this script based on email patterns
+docker exec construction_db psql -U admin -d construction_db << EOF
+DELETE FROM users WHERE email ~ '^(Baidar|Arman|Timur|Nurlan|Kazbek|Aibek|Daulet|Samat|Rustam|Adil|Aigerim|Madina|Saltanat|Zhanna|Karlygash|Gaukhar|Kamila|Zarina|Symbat|Asel)[0-9]+@(inbox\.com|gmail\.com|gmail\.kz)$';
+EOF
+
 # Run cleanup SQL script
 docker exec construction_db psql -U admin -d construction_db -f /app/cleanup-test-data.sql > /dev/null 2>&1
 
@@ -28,8 +33,14 @@ payment_types=("hourly" "hourly" "m2" "hourly" "project" "hourly" "m2" "hourly" 
 # Worker names
 worker_names=("Baidar" "Arman" "Timur" "Nurlan" "Kazbek" "Aibek" "Daulet" "Samat" "Rustam" "Adil")
 
+# Worker surnames (different for each)
+worker_surnames=("Bekbayev" "Tokayev" "Shaimardanov" "Kozhakhmetov" "Assayev" "Mukhanov" "Tarasov" "Orynbayev" "Galiakhmetov" "Dossaliyev")
+
 # Customer names
 customer_names=("Aigerim" "Madina" "Saltanat" "Zhanna" "Karlygash" "Gaukhar" "Kamila" "Zarina" "Symbat" "Asel")
+
+# Customer surnames (different for each)
+customer_surnames=("Akimova" "Suleimenova" "Ismailova" "Khasanova" "Ospanova" "Erimbetova" "Mukasheva" "Nurgaliyeva" "Bekbayeva" "Saduakassova")
 
 # Arrays to store created IDs
 declare -a worker_ids
@@ -43,9 +54,10 @@ echo "========================================"
 
 for i in {1..10}; do
   firstname="${worker_names[$((i-1))]}"
-  lastname="Specialist"
-  email="worker$i@test.com"
-  password="Test123!@"
+  lastname="${worker_surnames[$((i-1))]}"
+  email_domain=$([ $((i % 2)) -eq 0 ] && echo "inbox.com" || echo "gmail.com")
+  email="${worker_names[$((i-1))]}$(($RANDOM % 1000))@$email_domain"
+  password="qwerty123"
   specialty="${specialties[$((i-1))]}"
   city="${cities[$((i-1))]}"
   hourly_rate="${hourly_rates[$((i-1))]}"
@@ -124,9 +136,9 @@ echo "========================================"
 
 for i in {1..10}; do
   firstname="${customer_names[$((i-1))]}"
-  lastname="Client"
-  email="customer$i@test.com"
-  password="Test123!@"
+  lastname="${customer_surnames[$((i-1))]}"
+  email="${customer_names[$((i-1))]}$(($RANDOM % 1000))@gmail.kz"
+  password="qwerty123"
   # Use different cities for customers (offset by 10 to get different cities than workers)
   city_index=$(((i + 9) % 20))
   city="${cities[$city_index]}"
@@ -284,6 +296,6 @@ echo "Created:"
 echo "  - 10 worker accounts (worker1@test.com - worker10@test.com)"
 echo "  - 10 customer accounts (customer1@test.com - customer10@test.com)"
 echo ""
-echo "All accounts use password: Test123!@"
+echo "All accounts use password: qwerty123"
 echo ""
 echo "You can now test the platform with these accounts!"

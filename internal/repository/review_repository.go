@@ -21,21 +21,23 @@ func (r *ReviewRepository) Create(review *models.Review) error {
 
 func (r *ReviewRepository) FindByWorkerID(workerID uuid.UUID) ([]models.Review, error) {
 	var reviews []models.Review
-	err := r.db.Preload("Customer.User").Where("worker_id = ?", workerID).
+	err := r.db.Preload("Customer").Preload("Customer.User").Preload("Worker").Preload("Worker.User").
+		Where("worker_id = ?", workerID).
 		Order("created_at DESC").Find(&reviews).Error
 	return reviews, err
 }
 
 func (r *ReviewRepository) FindByCustomerID(customerID uuid.UUID) ([]models.Review, error) {
 	var reviews []models.Review
-	err := r.db.Preload("Worker.User").Where("customer_id = ?", customerID).
+	err := r.db.Preload("Customer").Preload("Customer.User").Preload("Worker").Preload("Worker.User").
+		Where("customer_id = ?", customerID).
 		Order("created_at DESC").Find(&reviews).Error
 	return reviews, err
 }
 
 func (r *ReviewRepository) FindByID(id uuid.UUID) (*models.Review, error) {
 	var review models.Review
-	err := r.db.Preload("Customer.User").Preload("Worker.User").
+	err := r.db.Preload("Customer").Preload("Customer.User").Preload("Worker").Preload("Worker.User").
 		First(&review, "id = ?", id).Error
 	return &review, err
 }
